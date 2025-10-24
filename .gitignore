@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-electron
+.DS_Store
+*.log
+.vite
+.idea
+.vscode
+*.swp
+*.swo
+*~
