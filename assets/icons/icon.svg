@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 定义手绘效果的滤镜 -->
+  <defs>
+    <filter id="rough" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence baseFrequency="0.02" numOctaves="3" result="noise" seed="1"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2"/>
+    </filter>
+  </defs>
+  
+  <!-- 白色背景 -->
+  <rect width="512" height="512" rx="75" fill="#ffffff" stroke="#e0e0e0" stroke-width="3"/>
+  
+  <!-- 手绘风格的代码编辑器窗口 -->
+  <g transform="translate(50, 80)">
+    <!-- 编辑器背景 -->
+    <rect x="0" y="0" width="412" height="320" rx="15" fill="#f8f9fa" 
+          stroke="#333" stroke-width="3" filter="url(#rough)"/>
+    
+    <!-- 标题栏 -->
+    <rect x="0" y="0" width="412" height="45" rx="15" fill="#ff6b6b" 
+          stroke="#333" stroke-width="3"/>
+    <rect x="0" y="30" width="412" height="15" fill="#ff6b6b"/>
+    
+    <!-- 窗口控制按钮 - 手绘风格 -->
+    <circle cx="25" cy="22" r="7" fill="#ffffff" stroke="#333" stroke-width="2"/>
+    <circle cx="50" cy="22" r="7" fill="#ffffff" stroke="#333" stroke-width="2"/>
+    <circle cx="75" cy="22" r="7" fill="#ffffff" stroke="#333" stroke-width="2"/>
+    
+    <!-- 标题文字 -->
+    <text x="120" y="30" font-family="Comic Sans MS, cursive" font-size="18" 
+          fill="#ffffff" font-weight="bold">Claude Code</text>
+    
+    <!-- 代码内容 - 手绘风格 -->
+    <g transform="translate(20, 70)">
+      <!-- 行号区域 -->
+      <rect x="0" y="0" width="40" height="230" fill="#eeeeee" 
+            stroke="#ddd" stroke-width="1" opacity="0.7"/>
+      
+      <!-- 行号 -->
+      <text x="20" y="25" font-family="Courier, monospace" font-size="14" 
+            fill="#999" text-anchor="middle">1</text>
+      <text x="20" y="50" font-family="Courier, monospace" font-size="14" 
+            fill="#999" text-anchor="middle">2</text>
+      <text x="20" y="75" font-family="Courier, monospace" font-size="14" 
+            fill="#999" text-anchor="middle">3</text>
+      <text x="20" y="100" font-family="Courier, monospace" font-size="14" 
+            fill="#999" text-anchor="middle">4</text>
+      <text x="20" y="125" font-family="Courier, monospace" font-size="14" 
+            fill="#999" text-anchor="middle">5</text>
+      <text x="20" y="150" font-family="Courier, monospace" font-size="14" 
+            fill="#999" text-anchor="middle">6</text>
+      
+      <!-- 代码文本 -->
+      <text x="55" y="25" font-family="Courier, monospace" font-size="14" fill="#2563eb">
+        function</text>
+      <text x="135" y="25" font-family="Courier, monospace" font-size="14" fill="#0f172a">
+        main() {</text>
+      
+      <text x="55" y="50" font-family="Courier, monospace" font-size="14" fill="#059669">
+        // Claude 正在编程</text>
+      
+      <text x="55" y="75" font-family="Courier, monospace" font-size="14" fill="#dc2626">
+        console</text>
+      <text x="120" y="75" font-family="Courier, monospace" font-size="14" fill="#0f172a">
+        .log(</text>
+      <text x="155" y="75" font-family="Courier, monospace" font-size="14" fill="#7c3aed">
+        "Hello!"</text>
+      <text x="210" y="75" font-family="Courier, monospace" font-size="14" fill="#0f172a">
+        );</text>
+      
+      <text x="55" y="100" font-family="Courier, monospace" font-size="14" fill="#2563eb">
+        if</text>
+      <text x="80" y="100" font-family="Courier, monospace" font-size="14" fill="#0f172a">
+        (claude.isAwesome) {</text>
+      
+      <text x="75" y="125" font-family="Courier, monospace" font-size="14" fill="#2563eb">
+        return</text>
+      <text x="135" y="125" font-family="Courier, monospace" font-size="14" fill="#7c3aed">
+        "太棒了!"</text>
+      <text x="200" y="125" font-family="Courier, monospace" font-size="14" fill="#0f172a">
+        ;</text>
+      
+      <text x="55" y="150" font-family="Courier, monospace" font-size="14" fill="#0f172a">
+        }</text>
+    </g>
+  </g>
+  
+  <!-- Claude 机器人头像 - 手绘风格 -->
+  <g transform="translate(380, 400)">
+    <!-- 头部轮廓 -->
+    <circle cx="0" cy="0" r="45" fill="#4f46e5" stroke="#333" stroke-width="4" 
+            filter="url(#rough)"/>
+    
+    <!-- 眼睛 -->
+    <circle cx="-12" cy="-8" r="6" fill="#ffffff"/>
+    <circle cx="12" cy="-8" r="6" fill="#ffffff"/>
+    <circle cx="-12" cy="-8" r="3" fill="#333"/>
+    <circle cx="12" cy="-8" r="3" fill="#333"/>
+    
+    <!-- 嘴巴 -->
+    <path d="M -15 8 Q 0 18 15 8" stroke="#333" stroke-width="3" 
+          fill="none" stroke-linecap="round"/>
+    
+    <!-- C 字母标识 -->
+    <path d="M -8 -30 C -20 -30 -30 -20 -30 -8 C -30 4 -20 14 -8 14" 
+          stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <!-- 手绘风格的装饰元素 -->
+  <g stroke="#ff6b6b" stroke-width="2" fill="none" opacity="0.6">
+    <!-- 代码符号装饰 -->
+    <text x="80" y="60" font-family="Courier, monospace" font-size="24" fill="#ff6b6b">{ }</text>
+    <text x="150" y="450" font-family="Courier, monospace" font-size="20" fill="#4f46e5">&lt;/&gt;</text>
+    
+    <!-- 手绘线条 -->
+    <path d="M 60 440 Q 120 420 180 440" stroke-linecap="round"/>
+    <path d="M 300 60 Q 350 80 400 60" stroke-linecap="round"/>
+  </g>
+  
+  <!-- 版本标识 -->
+  <text x="256" y="480" font-family="Comic Sans MS, cursive" font-size="16" 
+        fill="#666" text-anchor="middle">Agent for Desktop</text>
+</svg>

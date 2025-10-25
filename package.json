@@ -11,6 +11,7 @@
     "dev": "concurrently -k \"npm:dev:web\" \"npm:dev:electron\"",
     "build:web": "vite build",
     "build": "npm run build:web",
+    "icons": "electron scripts/generate-icons.cjs",
     "start": "electron .",
     "test": "jest",
     "test:watch": "jest --watch",

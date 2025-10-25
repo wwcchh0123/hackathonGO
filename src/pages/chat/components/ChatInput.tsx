@@ -31,7 +31,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       fullWidth
       multiline
       maxRows={4}
-      placeholder={isLoading ? "Processing..." : "Ask Claude Code anything..."}
+      placeholder={isLoading ? "Processing..." : "Ask Agent for Desktop anything..."}
       value={inputText}
       onChange={(e) => setInputText(e.target.value)}
       onKeyDown={(e) => {

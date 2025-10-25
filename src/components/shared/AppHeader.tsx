@@ -58,7 +58,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </Typography>
         </Box>
         <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a1a' }}>
-          Claude Code
+          Agent for Desktop
         </Typography>
       </Box>
       

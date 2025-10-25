@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, nativeImage } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
@@ -34,7 +34,8 @@ function createWindow() {
       enableRemoteModule: false,
       webSecurity: false, // 仅在开发环境
     },
-    title: 'Claude Code Desktop',
+    title: 'Agent for Desktop',
+    icon: path.join(process.cwd(), 'assets', 'icons', 'icon.png'),
   })
 
 
@@ -52,6 +53,16 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow()
+  // macOS Dock icon
+  try {
+    const dockIconPath = path.join(process.cwd(), 'assets', 'icons', 'icon.png')
+    if (process.platform === 'darwin') {
+      const img = nativeImage.createFromPath(dockIconPath)
+      if (!img.isEmpty()) {
+        app.dock.setIcon(img)
+      }
+    }
+  } catch { }
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
@@ -124,11 +135,11 @@ class ClaudeJsonStreamProcessor {
   processChunk(chunk) {
     this.outputBuffer += chunk
     this.lineBuffer += chunk
-    
+
     // 按行分割处理JSON
     const lines = this.lineBuffer.split('\n')
     this.lineBuffer = lines.pop() || '' // 保留可能不完整的最后一行
-    
+
     for (const line of lines) {
       if (line.trim()) {
         this.processJsonLine(line.trim())
@@ -148,24 +159,24 @@ class ClaudeJsonStreamProcessor {
 
   handleJsonMessage(data) {
     this.messageCount++
-    
+
     switch (data.type) {
       case 'system':
         this.handleSystemMessage(data)
         break
-        
+
       case 'assistant':
         this.handleAssistantMessage(data)
         break
-        
+
       case 'user':
         this.handleUserMessage(data)
         break
-        
+
       case 'result':
         this.handleResultMessage(data)
         break
-        
+
       default:
         this.sendGenericMessage(data)
     }
@@ -206,7 +217,7 @@ class ClaudeJsonStreamProcessor {
     if (data.message?.content?.[0]?.type === 'tool_result') {
       const toolResult = data.message.content[0]
       const isError = toolResult.is_error
-      
+
       sendStreamUpdate(this.sessionId, {
         type: 'stream-data',
         data: {
@@ -223,7 +234,7 @@ class ClaudeJsonStreamProcessor {
 
   handleResultMessage(data) {
     const isSuccess = !data.is_error
-    
+
     // 只显示最终的result内容，不显示执行状态信息
     if (isSuccess && data.result) {
       // 最终结果通过stream-end事件发送，而不是stream-data
@@ -310,16 +321,16 @@ ipcMain.handle('send-message', async (_event, options) => {
   console.log('=== IPC send-message received ===')
   console.log('Options:', JSON.stringify(options, null, 2))
 
-  const { 
-    command, 
-    baseArgs = [], 
-    message, 
-    cwd, 
-    env = {}, 
+  const {
+    command,
+    baseArgs = [],
+    message,
+    cwd,
+    env = {},
     timeoutMs = 120000,
     sessionId = `session_${Date.now()}`
   } = options || {}
-  
+
   if (!command || !message) {
     console.log('❌ Missing command or message')
     return { success: false, error: 'Command and message are required' }
@@ -366,7 +377,7 @@ ipcMain.handle('send-message', async (_event, options) => {
       const data = chunk.toString()
       console.log('📤 STDOUT:', data)
       stdout += data
-      
+
       // 实时发送Claude Code的真实输出
       streamProcessor.processChunk(data)
     })
@@ -376,7 +387,7 @@ ipcMain.handle('send-message', async (_event, options) => {
       const data = chunk.toString()
       console.log('❗ STDERR:', data)
       stderr += data
-      
+
       // 错误输出也可能包含有用信息
       sendStreamUpdate(sessionId, {
         type: 'stream-data',
@@ -393,22 +404,22 @@ ipcMain.handle('send-message', async (_event, options) => {
       if (isResolved) return
       isResolved = true
       console.log(`⏱️ Process timeout after ${timeoutMs}ms, killing process`)
-      
+
       sendStreamUpdate(sessionId, {
         type: 'stream-error',
         data: {
           stage: 'timeout',
-          content: `⏰ 执行超时 (${timeoutMs/1000}s)`,
+          content: `⏰ 执行超时 (${timeoutMs / 1000}s)`,
           error: `Timeout after ${timeoutMs}ms`
         }
       })
-      
+
       try {
         childProcess.kill('SIGKILL')
       } catch (e) {
         console.log('⚠️ Failed to kill process on timeout:', e)
       }
-      
+
       const result = {
         success: false,
         stdout: stdout.trim(),
@@ -427,7 +438,7 @@ ipcMain.handle('send-message', async (_event, options) => {
       clearTimeout(timeout)
 
       console.log('✅ Process finished with exit code:', code)
-      
+
       // 发送完成信号
       sendStreamUpdate(sessionId, {
         type: 'stream-end',
@@ -438,7 +449,7 @@ ipcMain.handle('send-message', async (_event, options) => {
           success: code === 0
         }
       })
-      
+
       const result = {
         success: code === 0,
         stdout: stdout.trim(),
@@ -456,7 +467,7 @@ ipcMain.handle('send-message', async (_event, options) => {
       clearTimeout(timeout)
 
       console.log('💥 Process error:', err)
-      
+
       sendStreamUpdate(sessionId, {
         type: 'stream-error',
         data: {
@@ -465,7 +476,7 @@ ipcMain.handle('send-message', async (_event, options) => {
           error: String(err)
         }
       })
-      
+
       const result = {
         success: false,
         error: String(err)
@@ -490,7 +501,7 @@ ipcMain.handle('start-vnc', async (event) => {
   if (vncStartupPromise) {
     return await vncStartupPromise
   }
-  
+
   vncStartupPromise = startVncInternal()
   const result = await vncStartupPromise
   vncStartupPromise = null
@@ -500,36 +511,36 @@ ipcMain.handle('start-vnc', async (event) => {
 async function startVncInternal() {
   try {
     console.log('开始启动VNC容器...')
-    
+
     // 1. 检查Docker可用性
     await checkDockerAvailable()
-    
+
     // 2. 检查镜像存在性
     await checkImageExists('computer-use-demo:local')
-    
+
     // 3. 停止现有容器
     if (vncContainerId) {
       await stopVncContainer()
     }
-    
+
     // 4. 检查端口可用性
     await checkPortsAvailable()
-    
+
     // 5. 启动新容器
     const containerId = await launchContainer()
-    
+
     // 6. 等待服务就绪
     await waitForServices()
-    
+
     vncContainerId = containerId
-    
+
     return {
       success: true,
       containerId,
       vncUrl: `http://localhost:${VNC_PORTS.web}/vnc.html?autoconnect=1&resize=scale&view_only=false`,
       toolsUrl: `http://localhost:${VNC_PORTS.tools}`
     }
-    
+
   } catch (error) {
     console.error('VNC启动失败:', error)
     return {
@@ -561,7 +572,7 @@ async function checkImageExists(imageName) {
 
 async function checkPortsAvailable() {
   const busyPorts = []
-  
+
   for (const [service, port] of Object.entries(VNC_PORTS)) {
     try {
       await execAsync(`lsof -ti:${port}`)
@@ -570,7 +581,7 @@ async function checkPortsAvailable() {
       // 端口可用
     }
   }
-  
+
   if (busyPorts.length > 0) {
     throw new Error(`以下端口被占用: ${busyPorts.join(', ')}`)
   }
@@ -580,50 +591,50 @@ async function launchContainer() {
   const envVars = [
     `ANTHROPIC_API_KEY=${process.env.ANTHROPIC_API_KEY || ''}`
   ]
-  
+
   const portMappings = Object.values(VNC_PORTS)
     .map(port => `-p ${port}:${port}`)
     .join(' ')
-  
+
   const envMappings = envVars
     .map(env => `-e "${env}"`)
     .join(' ')
-  
+
   // 生成唯一的容器名
   const containerName = `vnc-desktop-${Date.now()}`
-  
+
   // 构建完整的Docker命令
   const command = `docker run -d --rm ${portMappings} ${envMappings} --name ${containerName} computer-use-demo:local`
-  
+
   console.log('启动容器命令:', command)
-  
+
   const { stdout } = await execAsync(command)
   const containerId = stdout.trim()
-  
+
   if (!containerId) {
     throw new Error('容器启动失败，未获取到容器ID')
   }
-  
+
   console.log('容器启动成功，ID:', containerId)
   return containerId
 }
 
 async function waitForServices() {
   console.log('等待服务启动...')
-  
+
   // 等待noVNC Web服务
   await waitForPort(VNC_PORTS.web, 30000, 'noVNC Web服务')
-  
+
   // 等待Streamlit服务
   await waitForPort(VNC_PORTS.streamlit, 20000, 'Streamlit服务')
-  
+
   console.log('所有服务已启动')
 }
 
 async function waitForPort(port, timeout = 10000, serviceName = '服务') {
   const start = Date.now()
   const interval = 1000
-  
+
   while (Date.now() - start < timeout) {
     try {
       await execAsync(`curl -f -s http://localhost:${port} > /dev/null`)
@@ -634,7 +645,7 @@ async function waitForPort(port, timeout = 10000, serviceName = '服务') {
       await new Promise(resolve => setTimeout(resolve, interval))
     }
   }
-  
+
   throw new Error(`${serviceName} (端口${port}) 启动超时`)
 }
 
@@ -647,20 +658,20 @@ async function stopVncContainer() {
   try {
     if (vncContainerId) {
       console.log('停止VNC容器:', vncContainerId)
-      
+
       // 发送SIGTERM信号，给容器时间优雅关闭
       await execAsync(`docker stop -t 10 ${vncContainerId}`)
-      
+
       vncContainerId = null
       console.log('VNC容器已停止')
     }
-    
+
     return { success: true }
   } catch (error) {
     console.error('停止VNC容器失败:', error)
-    return { 
-      success: false, 
-      error: error.message 
+    return {
+      success: false,
+      error: error.message
     }
   }
 }
@@ -670,11 +681,11 @@ ipcMain.handle('vnc-status', async (event) => {
   if (!vncContainerId) {
     return { running: false }
   }
-  
+
   try {
     const { stdout } = await execAsync(`docker ps -q -f id=${vncContainerId}`)
     const isRunning = stdout.trim().length > 0
-    
+
     if (isRunning) {
       // 检查服务健康状态
       const healthStatus = await checkServiceHealth()
@@ -696,7 +707,7 @@ ipcMain.handle('vnc-status', async (event) => {
 
 async function checkServiceHealth() {
   const services = []
-  
+
   for (const [serviceName, port] of Object.entries(VNC_PORTS)) {
     try {
       await execAsync(`curl -f -s --max-time 5 http://localhost:${port} > /dev/null`)
@@ -705,7 +716,7 @@ async function checkServiceHealth() {
       services.push({ name: serviceName, port, status: 'unhealthy' })
     }
   }
-  
+
   return services
 }
 
@@ -714,13 +725,13 @@ app.on('before-quit', async (event) => {
   if (vncContainerId) {
     console.log('应用退出，清理VNC容器...')
     event.preventDefault()
-    
+
     try {
       await stopVncContainer()
     } catch (error) {
       console.error('清理VNC容器失败:', error)
     }
-    
+
     app.quit()
   }
 })
@@ -731,7 +742,7 @@ setInterval(async () => {
     try {
       const { stdout } = await execAsync(`docker ps -q -f id=${vncContainerId}`)
       const isRunning = stdout.trim().length > 0
-      
+
       if (!isRunning) {
         vncContainerId = null
         // 通知渲染进程容器已停止
