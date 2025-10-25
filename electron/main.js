@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, nativeImage } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, nativeImage, session } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
@@ -51,7 +51,24 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // 配置代理以访问 Google 语音识别服务
+  // 如果你有本地代理，取消下面的注释并修改代理地址
+  // 常见代理端口：Clash 7890, V2Ray 10809, SSR 1080
+  try {
+    // 方法1: 自动检测系统代理
+    await session.defaultSession.setProxy({ mode: 'system' })
+    console.log('✅ 已设置为使用系统代理')
+
+    // 方法2: 手动设置代理（如果系统代理不生效，取消下面的注释）
+    // await session.defaultSession.setProxy({
+    //   proxyRules: 'http://127.0.0.1:7890' // 修改为你的代理地址和端口
+    // })
+    // console.log('✅ 已设置手动代理: http://127.0.0.1:7890')
+  } catch (error) {
+    console.warn('⚠️ 代理设置失败:', error)
+  }
+
   createWindow()
   // macOS Dock icon
   try {

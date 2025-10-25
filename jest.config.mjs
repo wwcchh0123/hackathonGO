@@ -1,6 +1,6 @@
 export default {
   preset: 'ts-jest',
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   roots: ['<rootDir>/src', '<rootDir>/test'],
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   moduleNameMapper: {
@@ -12,10 +12,20 @@ export default {
     '!src/**/*.d.ts',
     '!src/**/index.ts'
   ],
-  extensionsToTreatAsEsm: ['.ts'],
+  globals: {
+    'import.meta': {
+      env: {
+        VITE_XUNFEI_APP_ID: 'test_app_id',
+        VITE_XUNFEI_API_SECRET: 'test_api_secret',
+        VITE_XUNFEI_API_KEY: 'test_api_key',
+      }
+    }
+  },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
-      useESM: true,
+      tsconfig: {
+        esModuleInterop: true,
+      }
     }],
   },
 };
