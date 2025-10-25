@@ -6,10 +6,12 @@ import { promisify } from 'node:util'
 import { exec } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
+import { StreamHandler } from './lib/stream-handler.js'
 
 const execAsync = promisify(exec)
 
 let mainWindow
+let streamHandler
 const isDev = process.env.ELECTRON_DEV === 'true'
 const __filename = fileURLToPath(import.meta.url)
 
@@ -37,6 +39,8 @@ function createWindow() {
     title: 'Claude Code Desktop',
   })
 
+  // 初始化 StreamHandler
+  streamHandler = new StreamHandler()
 
   if (isDev) {
     const devUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173'
@@ -58,6 +62,10 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  // 清理 StreamHandler
+  if (streamHandler) {
+    streamHandler.cleanup()
+  }
   if (process.platform !== 'darwin') app.quit()
 })
 
@@ -99,6 +107,68 @@ ipcMain.handle('sessions-save', async (_event, data) => {
     console.error('写入会话文件失败:', e)
     return { success: false, error: String(e) }
   }
+})
+
+// ========== 流式 IPC 处理器 ==========
+
+// 启动流
+ipcMain.on('start-stream', (event, options) => {
+  console.log('🎯 [Main IPC] Received start-stream request')
+  console.log('🎯 [Main IPC] Options:', JSON.stringify(options, null, 2))
+  
+  if (!streamHandler) {
+    console.error('❌ [Main IPC] StreamHandler not initialized')
+    event.sender.send('stream-error', {
+      error: { type: 'initialization_error', message: 'StreamHandler not initialized' }
+    })
+    return
+  }
+  
+  try {
+    console.log('🎯 [Main IPC] Calling streamHandler.startStream...')
+    const streamId = streamHandler.startStream(event, options)
+    console.log('✅ [Main IPC] Stream started successfully with ID:', streamId)
+  } catch (error) {
+    console.error('❌ [Main IPC] Failed to start stream:', error)
+    console.error('❌ [Main IPC] Error stack:', error.stack)
+    event.sender.send('stream-error', {
+      error: { type: 'start_error', message: error.message }
+    })
+  }
+})
+
+// 暂停流
+ipcMain.on('pause-stream', (event, streamId) => {
+  console.log('⏸️ Pausing stream:', streamId)
+  if (streamHandler) {
+    streamHandler.pauseStream(streamId)
+    event.sender.send('stream-paused', { streamId })
+  }
+})
+
+// 恢复流
+ipcMain.on('resume-stream', (event, streamId) => {
+  console.log('▶️ Resuming stream:', streamId)
+  if (streamHandler) {
+    streamHandler.resumeStream(streamId)
+    event.sender.send('stream-resumed', { streamId })
+  }
+})
+
+// 中止流
+ipcMain.on('abort-stream', (event, streamId) => {
+  console.log('🛑 Aborting stream:', streamId)
+  if (streamHandler) {
+    streamHandler.abortStream(streamId)
+  }
+})
+
+// 获取活跃流列表
+ipcMain.handle('get-active-streams', () => {
+  if (streamHandler) {
+    return streamHandler.getActiveStreams()
+  }
+  return []
 })
 
 ipcMain.handle('send-message', async (_event, options) => {

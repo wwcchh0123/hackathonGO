@@ -9,9 +9,13 @@
     "dev:web": "vite",
     "dev:electron": "ELECTRON_DEV=true electron .",
     "dev": "concurrently -k \"npm:dev:web\" \"npm:dev:electron\"",
+    "dev:stream:web": "vite --config vite.config.stream.ts",
+    "dev:stream:electron": "ELECTRON_DEV=true STREAM_MODE=true electron electron/main-stream.js",
+    "dev:stream": "concurrently -k \"npm:dev:stream:web\" \"npm:dev:stream:electron\"",
     "build:web": "vite build",
     "build": "npm run build:web",
     "start": "electron .",
+    "start:stream": "STREAM_MODE=true electron electron/main-stream.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
@@ -30,6 +34,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
+    "@testing-library/react-hooks": "^8.0.1",
     "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.19.23",

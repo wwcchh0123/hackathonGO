@@ -14,7 +14,15 @@
       "Bash(npx ts-node:*)",
       "Bash(npx tsc:*)",
       "Bash(node:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(open:*)",
+      "Bash(npm run dev:stream:*)",
+      "Bash(npm run dev:*)",
+      "Bash(chmod:*)",
+      "Bash(./test-stream.sh:*)",
+      "Bash(claude -p \"test\")",
+      "Bash(claude:*)",
+      "Bash(ANTHROPIC_API_KEY=\"\" timeout 5 claude -p --dangerously-skip-permissions --verbose --output-format stream-json \"hi\")"
     ],
     "deny": [],
     "ask": []

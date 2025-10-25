@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react"
+import React, { useEffect, useState, useCallback, useRef } from "react"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
 import { Box, CssBaseline } from "@mui/material"
 import { AppHeader } from "./components/shared"
@@ -59,10 +59,6 @@ const theme = createTheme({
 
 export default function App() {
   const [command, setCommand] = useState("claude")
-  const [baseArgs, setBaseArgs] = useState([
-    "-p",
-    "--dangerously-skip-permissions",
-  ])
   const [cwd, setCwd] = useState("")
   const [envText, setEnvText] = useState("")
   const [inputText, setInputText] = useState("")
@@ -70,6 +66,12 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<"chat" | "settings">("chat")
   const [isLoading, setIsLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  
+  // 流式模式状态
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [currentStreamContent, setCurrentStreamContent] = useState("")
+  const streamIdRef = useRef<string | null>(null)
+  const streamMessageIdRef = useRef<string | null>(null)
 
   // VNC相关状态
   const [vncState, setVncState] = useState({
@@ -140,6 +142,72 @@ export default function App() {
 
   // 移除自动创建会话逻辑，避免覆盖已有历史
 
+  // 监听流式事件
+  useEffect(() => {
+    if (!window.api) return
+    
+    const handleStreamStarted = (event: any, data: any) => {
+      console.log('Stream started:', data)
+      streamIdRef.current = data.streamId
+    }
+    
+    const handleStreamData = (event: any, data: any) => {
+      console.log('Stream data:', data)
+      if (!streamIdRef.current || data.streamId === streamIdRef.current) {
+        // 处理流式数据
+        if (data.chunk?.type === 'delta' && data.chunk?.delta?.text) {
+          // 累积内容
+          setCurrentStreamContent(prev => {
+            const newContent = prev + data.chunk.delta.text
+            // 同时更新消息内容
+            if (streamMessageIdRef.current) {
+              setMessages(messages => messages.map(msg => 
+                msg.id === streamMessageIdRef.current 
+                  ? { ...msg, content: newContent }
+                  : msg
+              ))
+            }
+            return newContent
+          })
+        }
+      }
+    }
+    
+    const handleStreamEnd = (event: any, data: any) => {
+      console.log('Stream ended:', data)
+      if (!streamIdRef.current || data.streamId === streamIdRef.current) {
+        setIsStreaming(false)
+        streamIdRef.current = null
+        streamMessageIdRef.current = null
+        setCurrentStreamContent("")
+      }
+    }
+    
+    const handleStreamError = (event: any, data: any) => {
+      console.log('Stream error:', data)
+      if (!streamIdRef.current || data.streamId === streamIdRef.current) {
+        addMessage("system", `Stream error: ${data.error?.message || 'Unknown error'}`)
+        setIsStreaming(false)
+        streamIdRef.current = null
+        streamMessageIdRef.current = null
+        setCurrentStreamContent("")
+      }
+    }
+    
+    // 添加监听器
+    const unsubscribeStarted = window.api.onStreamStarted?.(handleStreamStarted)
+    const unsubscribeData = window.api.onStreamData?.(handleStreamData)
+    const unsubscribeEnd = window.api.onStreamEnd?.(handleStreamEnd)
+    const unsubscribeError = window.api.onStreamError?.(handleStreamError)
+    
+    return () => {
+      unsubscribeStarted?.()
+      unsubscribeData?.()
+      unsubscribeEnd?.()
+      unsubscribeError?.()
+    }
+  }, [addMessage])
+
   // 监听容器状态变化
   useEffect(() => {
     if (!window.api?.vnc) return
@@ -189,7 +257,6 @@ export default function App() {
       if (raw) {
         const cfg = JSON.parse(raw)
         setCommand(cfg.command || "claude")
-        setBaseArgs(cfg.baseArgs || ["-p", "--dangerously-skip-permissions"])
         setCwd(cfg.cwd || "")
         setEnvText(cfg.envText || "")
       }
@@ -198,12 +265,12 @@ export default function App() {
 
   // persist config
   useEffect(() => {
-    const cfg = { command, baseArgs, cwd, envText }
+    const cfg = { command, cwd, envText }
     localStorage.setItem("config", JSON.stringify(cfg))
-  }, [command, baseArgs, cwd, envText])
+  }, [command, cwd, envText])
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || isLoading) return
+    if (!inputText.trim() || isLoading || isStreaming) return
 
     // 确保有活动会话
     let currentSessionId = activeSessionId
@@ -215,58 +282,50 @@ export default function App() {
     console.log("🔵 Sending message:", userMessage)
     addMessage("user", userMessage)
     setInputText("")
-    setIsLoading(true)
-
-    try {
-      // 检查API是否可用（在浏览器打开时不可用）
-      console.log(
-        "🔍 Checking window.api:",
-        !!window.api,
-        !!window.api?.sendMessage
+    
+    // 统一使用流式模式
+    if (!window.api?.startStream) {
+      console.log("❌ Stream API not available")
+      addMessage(
+        "system",
+        "Stream API not available. Please run the desktop app via Electron: npm start (built) or npm run dev (dev)."
       )
-      if (!window.api || !window.api.sendMessage) {
-        console.log("❌ window.api not available")
-        addMessage(
-          "system",
-          "Electron API not available. Please run the desktop app via Electron: npm start (built) or npm run dev (dev)."
-        )
-        setIsLoading(false)
-        return
-      }
-
-      const env: Record<string, string> = {}
-      envText.split(/\n/).forEach((line) => {
-        const m = line.match(/^([^=]+)=(.*)$/)
-        if (m) env[m[1].trim()] = m[2].trim()
-      })
-
-      const options = {
-        command,
-        baseArgs,
-        message: userMessage,
-        cwd,
-        env,
-      }
-
-      console.log("📤 Sending to IPC:", options)
-      const result = await window.api.sendMessage(options)
-      console.log("📥 Received from IPC:", result)
-
-      if (result.success && result.stdout) {
-        addMessage("assistant", result.stdout)
-      } else if (result.stderr) {
-        addMessage("system", `Error: ${result.stderr}`)
-      } else if (result.error) {
-        addMessage("system", `Error: ${result.error}`)
-      } else {
-        addMessage("system", "No response from Claude Code CLI")
-      }
-    } catch (error) {
-      console.log("💥 Frontend error:", error)
-      addMessage("system", `Failed to send message: ${error}`)
+      return
     }
 
-    setIsLoading(false)
+    console.log("🚀 Using streaming mode")
+    setIsStreaming(true)
+    setCurrentStreamContent("")
+    
+    const env: Record<string, string> = {}
+    envText.split(/\n/).forEach((line) => {
+      // 跳过空行和注释行（以 # 开头）
+      const trimmedLine = line.trim()
+      if (!trimmedLine || trimmedLine.startsWith('#')) return
+      
+      const m = line.match(/^([^=]+)=(.*)$/)
+      if (m) env[m[1].trim()] = m[2].trim()
+    })
+
+    const options = {
+      command,
+      message: userMessage,
+      cwd,
+      env
+    }
+    
+    // 创建一个占位的助手消息
+    const assistantMessageId = Date.now().toString() + '-assistant'
+    streamMessageIdRef.current = assistantMessageId
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      type: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    }
+    setMessages(prev => [...prev, assistantMessage])
+    
+    window.api.startStream(options)
   }
 
   const handlePickCwd = async () => {
@@ -293,8 +352,6 @@ export default function App() {
         <SettingsPage
           command={command}
           setCommand={setCommand}
-          baseArgs={baseArgs}
-          setBaseArgs={setBaseArgs}
           cwd={cwd}
           setCwd={setCwd}
           envText={envText}
@@ -326,7 +383,6 @@ export default function App() {
 
         <ChatPage
           command={command}
-          baseArgs={baseArgs}
           cwd={cwd}
           envText={envText}
           inputText={inputText}
