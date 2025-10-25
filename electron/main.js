@@ -180,10 +180,24 @@ class ClaudeJsonStreamProcessor {
     const message = data.message
     if (!message) return
 
-    // 只处理工具调用，显示进度状态
+    // 收集所有内容
+    const textBlocks = []
+    const toolCalls = []
+
     if (message.content && Array.isArray(message.content)) {
       for (const content of message.content) {
-        if (content.type === 'tool_use') {
+        if (content.type === 'text' && content.text) {
+          textBlocks.push(content.text)
+        } else if (content.type === 'tool_use') {
+          // 收集工具调用信息
+          toolCalls.push({
+            id: content.id || `tool_${Date.now()}`,
+            name: content.name,
+            input: content.input || {},
+            status: 'running'
+          })
+
+          // 同时发送简单的进度提示
           sendStreamUpdate(this.sessionId, {
             type: 'stream-data',
             data: {
@@ -196,8 +210,21 @@ class ClaudeJsonStreamProcessor {
             }
           })
         }
-        // 文本内容不在中间过程显示，只在最终result显示
       }
+    }
+
+    // 发送完整的助手消息（包括文本和工具调用）
+    if (textBlocks.length > 0 || toolCalls.length > 0) {
+      sendStreamUpdate(this.sessionId, {
+        type: 'stream-assistant',
+        data: {
+          content: textBlocks.join('\n\n'),
+          toolCalls: toolCalls,
+          model: message.model,
+          messageId: message.id,
+          usage: message.usage
+        }
+      })
     }
   }
 

@@ -1,6 +1,6 @@
 export default {
   preset: 'ts-jest',
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom', // 使用 jsdom 环境以支持 React 组件测试
   roots: ['<rootDir>/src', '<rootDir>/test'],
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   moduleNameMapper: {
@@ -18,4 +18,5 @@ export default {
       useESM: true,
     }],
   },
+  setupFilesAfterEnv: ['<rootDir>/test/setup.ts'], // 添加测试环境设置文件
 };

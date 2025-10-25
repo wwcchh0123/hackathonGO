@@ -224,6 +224,31 @@ export default function App() {
     return () => clearInterval(interval)
   }, [vncState.isActive, updateVncState])
 
+  // 辅助函数：从内容中提取思考过程
+  const extractThinking = (content: string): string | undefined => {
+    if (!content) return undefined
+
+    const thinkingKeywords = [
+      '我可以帮您',
+      '让我',
+      '首先',
+      '我将',
+      '我会',
+      '我需要'
+    ]
+
+    const lines = content.split('\n')
+    const thinkingLines: string[] = []
+
+    for (const line of lines) {
+      if (thinkingKeywords.some(keyword => line.trim().startsWith(keyword))) {
+        thinkingLines.push(line)
+      }
+    }
+
+    return thinkingLines.length > 0 ? thinkingLines.join('\n') : undefined
+  }
+
   // 监听Claude Code流式事件
   useEffect(() => {
     if (!window.api?.onClaudeStream) return
@@ -235,13 +260,51 @@ export default function App() {
         case 'stream-start':
           startStreamingMessage()
           break
-          
+
+        case 'stream-assistant':
+          // 处理包含完整信息的助手消息（文本 + 工具调用）
+          if (message.data) {
+            const { content, toolCalls } = message.data
+
+            // 如果有流式消息，更新它
+            if (streamingMessageId) {
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === streamingMessageId
+                    ? {
+                        ...msg,
+                        content: content || msg.content,
+                        toolCalls: toolCalls || msg.toolCalls,
+                        thinking: extractThinking(content)
+                      }
+                    : msg
+                )
+              )
+            } else {
+              // 如果没有流式消息，创建新消息
+              startStreamingMessage()
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === streamingMessageId
+                    ? {
+                        ...msg,
+                        content: content || '',
+                        toolCalls: toolCalls,
+                        thinking: extractThinking(content)
+                      }
+                    : msg
+                )
+              )
+            }
+          }
+          break
+
         case 'stream-data':
           if (message.data?.content) {
             updateStreamingMessage(message.data.content)
           }
           break
-          
+
         case 'stream-end':
           if (message.data?.success && message.data.result) {
             updateStreamingMessage(`\n\n${message.data.result}`) // 追加最终结果
@@ -250,7 +313,7 @@ export default function App() {
           }
           setStreamingMessageId(null)
           break
-          
+
         case 'stream-error':
           updateStreamingMessage(`❌ 执行错误: ${message.data?.content || '未知错误'}`, true)
           setStreamingMessageId(null)
@@ -260,7 +323,7 @@ export default function App() {
 
     const unsubscribe = window.api.onClaudeStream(handleStreamEvent)
     return unsubscribe
-  }, [streamingMessageId])
+  }, [streamingMessageId, extractThinking])
 
   // restore persisted config
   useEffect(() => {
