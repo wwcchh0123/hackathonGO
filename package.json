@@ -11,13 +11,16 @@
     "dev": "concurrently -k \"npm:dev:web\" \"npm:dev:electron\"",
     "build:web": "vite build",
     "build": "npm run build:web",
-    "start": "electron ."
+    "start": "electron .",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
     "@mui/icons-material": "^7.3.4",
-    "@mui/material": "^6.1.2",
+    "@mui/material": "^7.3.4",
     "@types/react-router-dom": "^5.3.3",
     "electron": "^30.5.1",
     "react": "^18.2.0",
@@ -25,13 +28,16 @@
     "react-router-dom": "^7.9.4"
   },
   "devDependencies": {
-    "@types/node": "^20.11.30",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.19.23",
     "@types/react": "^18.2.24",
     "@types/react-dom": "^18.2.11",
     "@vitejs/plugin-react": "^4.2.0",
     "concurrently": "^8.2.2",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3",
+    "typescript": "^5.9.3",
     "vite": "^5.0.12"
   }
 }
