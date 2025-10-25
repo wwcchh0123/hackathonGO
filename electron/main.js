@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 import { exec } from 'node:child_process'
+import fs from 'node:fs'
+import os from 'node:os'
 
 const execAsync = promisify(exec)
 
@@ -57,6 +59,46 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+// ========== 会话持久化（文件） ==========
+const sessionsDir = path.join(os.homedir(), 'claude_code_desktop')
+const sessionsFile = path.join(sessionsDir, 'sessions.json')
+
+function ensureSessionsDir() {
+  try {
+    if (!fs.existsSync(sessionsDir)) {
+      fs.mkdirSync(sessionsDir, { recursive: true })
+    }
+  } catch (e) {
+    console.error('创建会话目录失败:', e)
+  }
+}
+
+ipcMain.handle('sessions-load', async () => {
+  try {
+    ensureSessionsDir()
+    if (!fs.existsSync(sessionsFile)) {
+      return { sessions: [], activeSessionId: null }
+    }
+    const raw = fs.readFileSync(sessionsFile, 'utf-8')
+    const data = JSON.parse(raw)
+    return data
+  } catch (e) {
+    console.error('读取会话文件失败:', e)
+    return { sessions: [], activeSessionId: null }
+  }
+})
+
+ipcMain.handle('sessions-save', async (_event, data) => {
+  try {
+    ensureSessionsDir()
+    fs.writeFileSync(sessionsFile, JSON.stringify(data, null, 2), 'utf-8')
+    return { success: true }
+  } catch (e) {
+    console.error('写入会话文件失败:', e)
+    return { success: false, error: String(e) }
+  }
 })
 
 ipcMain.handle('send-message', async (_event, options) => {
