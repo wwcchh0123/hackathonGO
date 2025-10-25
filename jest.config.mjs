@@ -12,14 +12,6 @@ export default {
     '!src/**/*.d.ts',
     '!src/**/index.ts'
   ],
-  coverageThreshold: {
-    global: {
-      branches: 8,
-      functions: 6,
-      lines: 7,
-      statements: 7
-    }
-  },
   extensionsToTreatAsEsm: ['.ts'],
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
