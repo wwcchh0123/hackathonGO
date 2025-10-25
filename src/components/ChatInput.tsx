@@ -6,14 +6,14 @@ interface ChatInputProps {
   inputText: string;
   setInputText: (value: string) => void;
   onSendMessage: () => void;
-  running: boolean;
+  isLoading: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   inputText,
   setInputText,
   onSendMessage,
-  running,
+  isLoading,
 }) => (
   <Paper 
     elevation={2} 
@@ -29,7 +29,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       fullWidth
       multiline
       maxRows={4}
-      placeholder={running ? "Type your message to Claude Code..." : "Start Claude Code to begin chatting"}
+      placeholder={isLoading ? "Processing..." : "Type your message to Claude Code..."}
       value={inputText}
       onChange={(e) => setInputText(e.target.value)}
       onKeyDown={(e) => {
@@ -38,7 +38,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           onSendMessage();
         }
       }}
-      disabled={!running}
+      disabled={isLoading}
       variant="outlined"
       size="small"
       sx={{
@@ -49,7 +49,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     />
     <IconButton 
       onClick={onSendMessage}
-      disabled={!inputText.trim() || !running}
+      disabled={!inputText.trim() || isLoading}
       color="primary"
       sx={{ 
         bgcolor: 'primary.main',

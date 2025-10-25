@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
-import { Box, Container, CssBaseline, Paper, Typography } from "@mui/material"
+import { Box, Container, CssBaseline } from "@mui/material"
 import { AppHeader } from "./components/AppHeader"
 import { SettingsPanel } from "./components/SettingsPanel"
 import { ChatMessages } from "./components/ChatMessages"
@@ -11,17 +11,19 @@ import { Message } from "./components/MessageBubble"
 declare global {
   interface Window {
     api: {
-      runCli: (options: {
+      sendMessage: (options: {
         command: string
-        args?: string[]
+        baseArgs?: string[]
+        message: string
         cwd?: string
         env?: Record<string, string>
-      }) => Promise<void>
-      stopCli: () => Promise<void>
-      sendCliInput: (line: string) => Promise<void>
-      onCliEvent: (
-        cb: (payload: { type: string; data: string }) => void
-      ) => () => void
+      }) => Promise<{
+        success: boolean
+        stdout?: string
+        stderr?: string
+        error?: string
+        exitCode?: number
+      }>
       selectDir: () => Promise<string | null>
     }
   }
@@ -45,21 +47,15 @@ const theme = createTheme({
 })
 
 export default function App() {
-  const hasApi = typeof window !== "undefined" && !!(window as any).api
-  const [command, setCommand] = useState("claude-code")
-  const [argsText, setArgsText] = useState("--interactive")
+  const [command, setCommand] = useState("claude")
+  const [baseArgs, setBaseArgs] = useState(["-p", "--dangerously-skip-permissions"])
   const [cwd, setCwd] = useState("")
-  const [running, setRunning] = useState(false)
   const [envText, setEnvText] = useState("")
   const [inputText, setInputText] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [showSettings, setShowSettings] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const args = useMemo(
-    () => (argsText.trim() ? argsText.split(/\s+/) : []),
-    [argsText]
-  )
-  const detachRef = useRef<null | (() => void)>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const addMessage = (
@@ -79,27 +75,14 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  useEffect(() => {
-    console.log('API检查:', { hasApi, windowApi: !!(window as any).api });
-    if (!hasApi) return
-    detachRef.current = window.api.onCliEvent((payload) => {
-      addMessage("assistant", payload.data)
-      if (payload.type === "start") setRunning(true)
-      if (payload.type === "exit" || payload.type === "error") setRunning(false)
-    })
-    return () => {
-      detachRef.current?.()
-    }
-  }, [hasApi])
-
   // restore persisted config
   useEffect(() => {
     try {
       const raw = localStorage.getItem("config")
       if (raw) {
         const cfg = JSON.parse(raw)
-        setCommand(cfg.command || "")
-        setArgsText(cfg.argsText || "")
+        setCommand(cfg.command || "claude")
+        setBaseArgs(cfg.baseArgs || ["-p", "--dangerously-skip-permissions"])
         setCwd(cfg.cwd || "")
         setEnvText(cfg.envText || "")
       }
@@ -108,58 +91,76 @@ export default function App() {
 
   // persist config
   useEffect(() => {
-    const cfg = { command, argsText, cwd, envText }
+    const cfg = { command, baseArgs, cwd, envText }
     localStorage.setItem("config", JSON.stringify(cfg))
-  }, [command, argsText, cwd, envText])
+  }, [command, baseArgs, cwd, envText])
 
-  const handleRun = async () => {
-    if (!running) {
+  const handleSendMessage = async () => {
+    if (!inputText.trim() || isLoading) return
+    
+    const userMessage = inputText.trim()
+    console.log("🔵 Sending message:", userMessage)
+    addMessage("user", userMessage)
+    setInputText("")
+    setIsLoading(true)
+    
+    try {
+      // 检查API是否可用（在浏览器打开时不可用）
+      console.log("🔍 Checking window.api:", !!window.api, !!window.api?.sendMessage)
+      if (!window.api || !window.api.sendMessage) {
+        console.log("❌ window.api not available")
+        addMessage(
+          "system",
+          "Electron API not available. Please run the desktop app via Electron: npm start (built) or npm run dev (dev)."
+        )
+        setIsLoading(false)
+        return
+      }
+
       const env: Record<string, string> = {}
       envText.split(/\n/).forEach((line) => {
         const m = line.match(/^([^=]+)=(.*)$/)
         if (m) env[m[1].trim()] = m[2].trim()
       })
-      addMessage("system", `Starting: ${command} ${args.join(" ")}`)
-      if (hasApi) {
-        try {
-          await window.api.runCli({ command, args, cwd, env })
-        } catch (error) {
-          addMessage("system", `Error starting CLI: ${error}`)
-        }
-      } else {
-        addMessage(
-          "system",
-          "Electron API unavailable. Launch the desktop app to run CLI."
-        )
+
+      const options = {
+        command,
+        baseArgs,
+        message: userMessage,
+        cwd,
+        env
       }
+      
+      console.log("📤 Sending to IPC:", options)
+      const result = await window.api.sendMessage(options)
+      console.log("📥 Received from IPC:", result)
+
+      if (result.success && result.stdout) {
+        addMessage("assistant", result.stdout)
+      } else if (result.stderr) {
+        addMessage("system", `Error: ${result.stderr}`)
+      } else if (result.error) {
+        addMessage("system", `Error: ${result.error}`)
+      } else {
+        addMessage("system", "No response from Claude Code CLI")
+      }
+    } catch (error) {
+      console.log("💥 Frontend error:", error)
+      addMessage("system", `Failed to send message: ${error}`)
     }
-  }
-
-  const handleStop = async () => {
-    if (hasApi && running) {
-      await window.api.stopCli()
-      addMessage("system", "Claude Code stopped")
-    }
-  }
-
-  const handleSendMessage = async () => {
-    if (!inputText.trim()) return
-
-    addMessage("user", inputText)
-
-    if (running && hasApi) {
-      await window.api.sendCliInput(inputText)
-    } else if (!running) {
-      addMessage(
-        "system",
-        "Claude Code is not running. Click the play button to start."
-      )
-    }
-
-    setInputText("")
+    
+    setIsLoading(false)
   }
 
   const handlePickCwd = async () => {
+    if (!window.api || !window.api.selectDir) {
+      addMessage(
+        "system",
+        "Electron API not available for directory selection. Start via Electron: npm start or npm run dev."
+      )
+      return
+    }
+    
     const dir = await window.api.selectDir()
     if (dir) setCwd(dir)
   }
@@ -170,31 +171,21 @@ export default function App() {
       <CssBaseline />
       <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
         <AppHeader
-          running={running}
           showSettings={showSettings}
           onToggleSettings={() => setShowSettings(!showSettings)}
-          onRunStop={running ? handleStop : handleRun}
-          hasCommand={!!command}
         />
 
         <Container
           maxWidth="md"
           sx={{ flex: 1, display: "flex", flexDirection: "column", py: 2 }}
         >
-          {!hasApi && (
-            <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-              <Typography color="warning.main">
-                Running in web mode (no Electron). Use the desktop app for CLI control.
-              </Typography>
-            </Paper>
-          )}
 
           {showSettings && (
             <SettingsPanel
               command={command}
               setCommand={setCommand}
-              argsText={argsText}
-              setArgsText={setArgsText}
+              baseArgs={baseArgs}
+              setBaseArgs={setBaseArgs}
               cwd={cwd}
               setCwd={setCwd}
               envText={envText}
@@ -213,7 +204,6 @@ export default function App() {
           >
             <ChatMessages
               messages={messages}
-              running={running}
               messagesEndRef={messagesEndRef}
             />
             
@@ -221,7 +211,7 @@ export default function App() {
               inputText={inputText}
               setInputText={setInputText}
               onSendMessage={handleSendMessage}
-              running={running}
+              isLoading={isLoading}
             />
           </Box>
         </Container>

@@ -4,8 +4,8 @@ import { Paper, Typography, Stack, TextField, Button } from '@mui/material';
 interface SettingsPanelProps {
   command: string;
   setCommand: (value: string) => void;
-  argsText: string;
-  setArgsText: (value: string) => void;
+  baseArgs: string[];
+  setBaseArgs: (value: string[]) => void;
   cwd: string;
   setCwd: (value: string) => void;
   envText: string;
@@ -16,8 +16,8 @@ interface SettingsPanelProps {
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   command,
   setCommand,
-  argsText,
-  setArgsText,
+  baseArgs,
+  setBaseArgs,
   cwd,
   setCwd,
   envText,
@@ -31,19 +31,20 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     <Stack spacing={2}>
       <TextField 
         label="CLI command" 
-        placeholder="e.g., claude-code" 
+        placeholder="e.g., claude" 
         value={command} 
         onChange={(e) => setCommand(e.target.value)} 
         fullWidth 
         size="small"
       />
       <TextField 
-        label="Arguments" 
-        placeholder="e.g., --interactive --mcp" 
-        value={argsText} 
-        onChange={(e) => setArgsText(e.target.value)} 
+        label="Base Arguments" 
+        placeholder="e.g., -p --dangerously-skip-permissions" 
+        value={baseArgs.join(' ')} 
+        onChange={(e) => setBaseArgs(e.target.value.trim() ? e.target.value.split(/\s+/) : [])} 
         fullWidth 
         size="small"
+        helperText="These arguments will be used before your message"
       />
       <Stack direction="row" spacing={1}>
         <TextField 

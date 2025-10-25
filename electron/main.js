@@ -6,23 +6,28 @@ import { spawn } from 'node:child_process';
 let mainWindow;
 const isDev = process.env.ELECTRON_DEV === 'true';
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(path.dirname(__filename), 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      enableRemoteModule: false,
+      webSecurity: false, // 仅在开发环境
     },
     title: 'Claude Code Desktop',
   });
 
+
   if (isDev) {
-    const devUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
+    const devUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5174';
+    console.log('Loading dev URL:', devUrl);
     mainWindow.loadURL(devUrl);
+    // 开发模式下打开开发者工具
+    mainWindow.webContents.openDevTools();
   } else {
     const indexPath = path.join(process.cwd(), 'dist', 'index.html');
     mainWindow.loadFile(indexPath);
@@ -40,50 +45,98 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-let currentProcess = null;
-
-ipcMain.handle('run-cli', async (_event, options) => {
-  const { command, args = [], cwd, env = {} } = options || {};
-  if (!command) {
-    mainWindow.webContents.send('cli-event', { type: 'error', data: 'No command provided' });
-    return;
+ipcMain.handle('send-message', async (_event, options) => {
+  console.log('=== IPC send-message received ===');
+  console.log('Options:', JSON.stringify(options, null, 2));
+  
+  const { command, baseArgs = [], message, cwd, env = {} } = options || {};
+  if (!command || !message) {
+    console.log('❌ Missing command or message');
+    return { success: false, error: 'Command and message are required' };
   }
 
-  if (currentProcess) {
-    mainWindow.webContents.send('cli-event', { type: 'info', data: 'A process is already running.' });
-    return;
-  }
+  return new Promise((resolve) => {
+    const mergedEnv = { ...process.env, ...env };
+    // 将用户消息作为最后一个参数传递给CLI
+    const args = [...baseArgs, message];
+    
+    console.log('🚀 Executing command:', command);
+    console.log('📝 Args:', args);
+    console.log('📁 CWD:', cwd || process.cwd());
+    console.log('🌍 ENV additions:', env);
+    
+    // 设置30秒超时
+    const timeout = setTimeout(() => {
+      console.log('⏰ Command timeout after 30 seconds');
+      childProcess.kill('SIGTERM');
+      resolve({
+        success: false,
+        error: 'Command timeout after 30 seconds'
+      });
+    }, 30000);
+    
+    const childProcess = spawn(command, args, { 
+      cwd: cwd || process.cwd(), 
+      env: mergedEnv, 
+      shell: true,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
 
-  const mergedEnv = { ...process.env, ...env };
-  currentProcess = spawn(command, args, { cwd: cwd || process.cwd(), env: mergedEnv, shell: true });
+    let stdout = '';
+    let stderr = '';
+    let isResolved = false;
 
-  mainWindow.webContents.send('cli-event', { type: 'start', data: `${command} ${args.join(' ')}` });
+    // 立即发送换行符，确保命令执行
+    childProcess.stdin.write('\n');
+    childProcess.stdin.end();
 
-  currentProcess.stdout.on('data', (chunk) => {
-    mainWindow.webContents.send('cli-event', { type: 'stdout', data: chunk.toString() });
+    childProcess.stdout.on('data', (chunk) => {
+      const data = chunk.toString();
+      console.log('📤 STDOUT:', data);
+      stdout += data;
+    });
+
+    childProcess.stderr.on('data', (chunk) => {
+      const data = chunk.toString();
+      console.log('❗ STDERR:', data);
+      stderr += data;
+    });
+
+    childProcess.on('close', (code) => {
+      if (isResolved) return;
+      isResolved = true;
+      clearTimeout(timeout);
+      
+      console.log('✅ Process finished with exit code:', code);
+      const result = {
+        success: code === 0,
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+        exitCode: code
+      };
+      console.log('📋 Final result:', JSON.stringify(result, null, 2));
+      resolve(result);
+    });
+
+    childProcess.on('error', (err) => {
+      if (isResolved) return;
+      isResolved = true;
+      clearTimeout(timeout);
+      
+      console.log('💥 Process error:', err);
+      const result = {
+        success: false,
+        error: String(err)
+      };
+      console.log('📋 Error result:', JSON.stringify(result, null, 2));
+      resolve(result);
+    });
+
+    // 监听进程启动
+    childProcess.on('spawn', () => {
+      console.log('🎯 Process spawned successfully');
+    });
   });
-  currentProcess.stderr.on('data', (chunk) => {
-    mainWindow.webContents.send('cli-event', { type: 'stderr', data: chunk.toString() });
-  });
-  currentProcess.on('close', (code) => {
-    mainWindow.webContents.send('cli-event', { type: 'exit', data: `Exited with code ${code}` });
-    currentProcess = null;
-  });
-  currentProcess.on('error', (err) => {
-    mainWindow.webContents.send('cli-event', { type: 'error', data: String(err) });
-  });
-});
-
-ipcMain.handle('stop-cli', async () => {
-  if (currentProcess) {
-    currentProcess.kill('SIGINT');
-  }
-});
-
-ipcMain.handle('send-cli-input', async (_event, line) => {
-  if (currentProcess && currentProcess.stdin && typeof line === 'string') {
-    currentProcess.stdin.write(line + '\n');
-  }
 });
 
 ipcMain.handle('select-dir', async () => {

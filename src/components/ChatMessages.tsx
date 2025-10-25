@@ -4,13 +4,11 @@ import { MessageBubble, Message } from './MessageBubble';
 
 interface ChatMessagesProps {
   messages: Message[];
-  running: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement>;
 }
 
 export const ChatMessages: React.FC<ChatMessagesProps> = ({
   messages,
-  running,
   messagesEndRef,
 }) => (
   <Box 
@@ -35,7 +33,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
           Welcome to Claude Code Desktop
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {running ? 'Start chatting with Claude Code!' : 'Click the play button to start Claude Code'}
+          Type your message below to start chatting with Claude Code!
         </Typography>
       </Box>
     ) : (
