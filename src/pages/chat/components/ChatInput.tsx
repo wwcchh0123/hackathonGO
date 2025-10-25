@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Paper, TextField, IconButton, Tooltip, Box, Typography } from '@mui/material';
+import { Paper, TextField, IconButton, Tooltip, Box, Typography, Switch, FormControlLabel } from '@mui/material';
 import { Send as SendIcon, Mic as MicIcon, MicOff as MicOffIcon } from '@mui/icons-material';
 
 interface ChatInputProps {
@@ -13,6 +13,9 @@ interface ChatInputProps {
   onStopVoice?: () => void;
   voiceError?: string | null;
   isVoiceSupported?: boolean;
+  // 虚拟电脑开关
+  showVnc?: boolean;
+  onToggleVnc?: () => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -25,6 +28,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onStopVoice,
   voiceError,
   isVoiceSupported = false,
+  showVnc,
+  onToggleVnc,
 }) => {
   // 当有语音错误时显示提示
   useEffect(() => {
@@ -57,13 +62,32 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         borderTop: '1px solid',
         borderColor: 'grey.200',
         borderRadius: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1.5
       }}
     >
+      {/* 输入框上方的工具栏（虚拟电脑开关） */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+        <FormControlLabel
+          label="虚拟电脑"
+          sx={{ mr: 0, userSelect: 'none', '& .MuiFormControlLabel-label': { fontSize: 13, color: 'text.secondary' } }}
+          control={
+            <Switch
+              size="small"
+              checked={!!showVnc}
+              onChange={onToggleVnc}
+              color="primary"
+              inputProps={{ 'aria-label': '虚拟电脑开关' }}
+            />
+          }
+        />
+      </Box>
+
       {/* 语音错误提示 */}
       {voiceError && (
         <Box
           sx={{
-            mb: 1,
             p: 1,
             bgcolor: 'error.50',
             borderRadius: 1,
@@ -81,7 +105,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {isListening && (
         <Box
           sx={{
-            mb: 1,
             p: 1,
             bgcolor: 'info.50',
             borderRadius: 1,

@@ -5,11 +5,13 @@ import { MessageBubble, Message } from './MessageBubble';
 interface ChatMessagesProps {
   messages: Message[];
   messagesEndRef: React.RefObject<HTMLDivElement>;
+  onPrefillInput: (text: string) => void;
 }
 
 export const ChatMessages: React.FC<ChatMessagesProps> = ({
   messages,
   messagesEndRef,
+  onPrefillInput,
 }) => (
   <Box 
     sx={{ 
@@ -55,7 +57,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
       </Box>
     ) : (
       messages.map((message) => (
-        <MessageBubble key={message.id} message={message} />
+        <MessageBubble key={message.id} message={message} onPrefillInput={onPrefillInput} />
       ))
     )}
     <div ref={messagesEndRef} />

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Box, Grid, Button } from '@mui/material'
+import { Box } from '@mui/material'
 import { ChatMessages } from './components/ChatMessages'
 import { ChatInput } from './components/ChatInput'
 import { SessionSidebar } from './components/SessionSidebar'
@@ -249,22 +249,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({
             <ChatMessages
               messages={messages}
               messagesEndRef={messagesEndRef}
+              onPrefillInput={(text) => setInputText(text)}
             />
-
-            {/* 虚拟电脑开关按钮（位于输入框上方） */}
-            <Box sx={{ px: 2, py: 1, borderTop: '1px solid', borderColor: 'grey.200', display: 'flex', justifyContent: 'flex-end' }}>
-              <Button
-                variant={showVnc ? 'contained' : 'outlined'}
-                color={showVnc ? 'primary' : 'inherit'}
-                size="small"
-                onClick={() => setShowVnc(v => !v)}
-                disableElevation
-                sx={{ boxShadow: 'none' }}
-                aria-pressed={showVnc}
-              >
-                虚拟电脑
-              </Button>
-            </Box>
 
             <ChatInput
               inputText={inputText}
@@ -276,6 +262,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({
               onStopVoice={stopListening}
               voiceError={voiceError}
               isVoiceSupported={isVoiceSupported}
+              showVnc={showVnc}
+              onToggleVnc={() => setShowVnc(v => !v)}
             />
           </Box>
         </Box>
