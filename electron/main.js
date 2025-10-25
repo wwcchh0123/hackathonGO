@@ -101,19 +101,244 @@ ipcMain.handle('sessions-save', async (_event, data) => {
   }
 })
 
+// 发送流式更新到前端
+function sendStreamUpdate(sessionId, update) {
+  BrowserWindow.getAllWindows().forEach(win => {
+    win.webContents.send('claude-stream', {
+      sessionId,
+      timestamp: new Date().toISOString(),
+      ...update
+    })
+  })
+}
+
+// Claude JSON流式解析器
+class ClaudeJsonStreamProcessor {
+  constructor(sessionId) {
+    this.sessionId = sessionId
+    this.lineBuffer = ''
+    this.outputBuffer = ''
+    this.messageCount = 0
+  }
+
+  processChunk(chunk) {
+    this.outputBuffer += chunk
+    this.lineBuffer += chunk
+    
+    // 按行分割处理JSON
+    const lines = this.lineBuffer.split('\n')
+    this.lineBuffer = lines.pop() || '' // 保留可能不完整的最后一行
+    
+    for (const line of lines) {
+      if (line.trim()) {
+        this.processJsonLine(line.trim())
+      }
+    }
+  }
+
+  processJsonLine(line) {
+    try {
+      const jsonData = JSON.parse(line)
+      this.handleJsonMessage(jsonData)
+    } catch (error) {
+      // 如果不是JSON，作为原始输出处理
+      this.sendRawOutput(line)
+    }
+  }
+
+  handleJsonMessage(data) {
+    this.messageCount++
+    
+    switch (data.type) {
+      case 'system':
+        this.handleSystemMessage(data)
+        break
+        
+      case 'assistant':
+        this.handleAssistantMessage(data)
+        break
+        
+      case 'user':
+        this.handleUserMessage(data)
+        break
+        
+      case 'result':
+        this.handleResultMessage(data)
+        break
+        
+      default:
+        this.sendGenericMessage(data)
+    }
+  }
+
+  handleSystemMessage(data) {
+    // 不显示系统初始化消息，只用于内部状态跟踪
+    // 让用户看到更清爽的执行过程
+  }
+
+  handleAssistantMessage(data) {
+    const message = data.message
+    if (!message) return
+
+    // 只处理工具调用，显示进度状态
+    if (message.content && Array.isArray(message.content)) {
+      for (const content of message.content) {
+        if (content.type === 'tool_use') {
+          sendStreamUpdate(this.sessionId, {
+            type: 'stream-data',
+            data: {
+              stage: 'tool',
+              content: `🔧 正在调用工具: ${content.name}`,
+              metadata: {
+                toolName: content.name,
+                toolId: content.id
+              }
+            }
+          })
+        }
+        // 文本内容不在中间过程显示，只在最终result显示
+      }
+    }
+  }
+
+  handleUserMessage(data) {
+    // 处理工具执行结果，只显示状态不显示详细内容
+    if (data.message?.content?.[0]?.type === 'tool_result') {
+      const toolResult = data.message.content[0]
+      const isError = toolResult.is_error
+      
+      sendStreamUpdate(this.sessionId, {
+        type: 'stream-data',
+        data: {
+          stage: isError ? 'error' : 'tool-result',
+          content: `${isError ? '❌' : '✅'} 工具执行${isError ? '失败' : '完成'}`,
+          metadata: {
+            toolUseId: toolResult.tool_use_id,
+            isError
+          }
+        }
+      })
+    }
+  }
+
+  handleResultMessage(data) {
+    const isSuccess = !data.is_error
+    
+    // 只显示最终的result内容，不显示执行状态信息
+    if (isSuccess && data.result) {
+      // 最终结果通过stream-end事件发送，而不是stream-data
+      sendStreamUpdate(this.sessionId, {
+        type: 'stream-end',
+        data: {
+          success: true,
+          result: data.result,
+          metadata: {
+            duration: data.duration_ms,
+            cost: data.total_cost_usd,
+            usage: data.usage
+          }
+        }
+      })
+    } else {
+      // 错误情况也通过stream-end发送
+      sendStreamUpdate(this.sessionId, {
+        type: 'stream-end',
+        data: {
+          success: false,
+          error: data.error,
+          metadata: {
+            duration: data.duration_ms,
+            permissionDenials: data.permission_denials
+          }
+        }
+      })
+    }
+
+    // 权限拒绝作为警告单独显示
+    if (data.permission_denials && data.permission_denials.length > 0) {
+      for (const denial of data.permission_denials) {
+        sendStreamUpdate(this.sessionId, {
+          type: 'stream-data',
+          data: {
+            stage: 'warning',
+            content: `⚠️ 权限被拒绝: ${denial.tool_name}`
+          }
+        })
+      }
+    }
+  }
+
+  sendGenericMessage(data, icon = '📍', stage = 'info') {
+    sendStreamUpdate(this.sessionId, {
+      type: 'stream-data',
+      data: {
+        stage,
+        content: `${icon} ${data.type || 'Message'} #${this.messageCount}`,
+        rawOutput: JSON.stringify(data, null, 2)
+      }
+    })
+  }
+
+  sendRawOutput(line) {
+    sendStreamUpdate(this.sessionId, {
+      type: 'stream-data',
+      data: {
+        stage: 'raw',
+        content: `💬 ${line}`,
+        rawOutput: line
+      }
+    })
+  }
+
+  sendCustomMessage(stage, message, icon = '📍') {
+    sendStreamUpdate(this.sessionId, {
+      type: 'stream-data',
+      data: {
+        stage,
+        content: `${icon} ${message}`,
+        timestamp: new Date().toISOString()
+      }
+    })
+  }
+
+  getFullOutput() {
+    return this.outputBuffer
+  }
+}
+
 ipcMain.handle('send-message', async (_event, options) => {
   console.log('=== IPC send-message received ===')
   console.log('Options:', JSON.stringify(options, null, 2))
 
-  const { command, baseArgs = [], message, cwd, env = {}, timeoutMs = 120000 } = options || {}
+  const { 
+    command, 
+    baseArgs = [], 
+    message, 
+    cwd, 
+    env = {}, 
+    timeoutMs = 120000,
+    sessionId = `session_${Date.now()}`
+  } = options || {}
+  
   if (!command || !message) {
     console.log('❌ Missing command or message')
     return { success: false, error: 'Command and message are required' }
   }
 
+  // 创建JSON流式处理器
+  const streamProcessor = new ClaudeJsonStreamProcessor(sessionId)
+
+  // 发送开始信号
+  sendStreamUpdate(sessionId, {
+    type: 'stream-start',
+    data: {
+      stage: 'init',
+      command: `${command} ${baseArgs.join(' ')}`
+    }
+  })
+
   return new Promise((resolve) => {
     const mergedEnv = { ...process.env, ...env }
-    // 将用户消息作为最后一个参数传递给CLI
     const args = [...baseArgs, message]
 
     const childProcess = spawn(command, args, {
@@ -131,28 +356,59 @@ ipcMain.handle('send-message', async (_event, options) => {
     childProcess.stdin.write('\n')
     childProcess.stdin.end()
 
+    // 进程启动成功 - 不显示启动消息
+    childProcess.on('spawn', () => {
+      console.log('🎯 Process spawned successfully')
+    })
+
+    // 处理标准输出 - 直接显示Claude Code的真实输出
     childProcess.stdout.on('data', (chunk) => {
       const data = chunk.toString()
       console.log('📤 STDOUT:', data)
       stdout += data
+      
+      // 实时发送Claude Code的真实输出
+      streamProcessor.processChunk(data)
     })
 
+    // 处理错误输出
     childProcess.stderr.on('data', (chunk) => {
       const data = chunk.toString()
       console.log('❗ STDERR:', data)
       stderr += data
+      
+      // 错误输出也可能包含有用信息
+      sendStreamUpdate(sessionId, {
+        type: 'stream-data',
+        data: {
+          stage: 'warning',
+          content: `⚠️ 注意: ${data.trim()}`,
+          metadata: { isError: true }
+        }
+      })
     })
 
-    // 超时控制，避免子进程长时间无响应
+    // 超时控制
     const timeout = setTimeout(() => {
       if (isResolved) return
       isResolved = true
       console.log(`⏱️ Process timeout after ${timeoutMs}ms, killing process`)
+      
+      sendStreamUpdate(sessionId, {
+        type: 'stream-error',
+        data: {
+          stage: 'timeout',
+          content: `⏰ 执行超时 (${timeoutMs/1000}s)`,
+          error: `Timeout after ${timeoutMs}ms`
+        }
+      })
+      
       try {
         childProcess.kill('SIGKILL')
       } catch (e) {
         console.log('⚠️ Failed to kill process on timeout:', e)
       }
+      
       const result = {
         success: false,
         stdout: stdout.trim(),
@@ -164,12 +420,25 @@ ipcMain.handle('send-message', async (_event, options) => {
       resolve(result)
     }, timeoutMs)
 
+    // 进程结束处理
     childProcess.on('close', (code) => {
       if (isResolved) return
       isResolved = true
       clearTimeout(timeout)
 
       console.log('✅ Process finished with exit code:', code)
+      
+      // 发送完成信号
+      sendStreamUpdate(sessionId, {
+        type: 'stream-end',
+        data: {
+          stage: code === 0 ? 'completed' : 'failed',
+          content: code === 0 ? '🎉 Claude Code 执行完成！' : '❌ Claude Code 执行失败',
+          exitCode: code,
+          success: code === 0
+        }
+      })
+      
       const result = {
         success: code === 0,
         stdout: stdout.trim(),
@@ -180,23 +449,29 @@ ipcMain.handle('send-message', async (_event, options) => {
       resolve(result)
     })
 
+    // 进程错误处理
     childProcess.on('error', (err) => {
       if (isResolved) return
       isResolved = true
       clearTimeout(timeout)
 
       console.log('💥 Process error:', err)
+      
+      sendStreamUpdate(sessionId, {
+        type: 'stream-error',
+        data: {
+          stage: 'error',
+          content: `💥 进程启动失败: ${err.message}`,
+          error: String(err)
+        }
+      })
+      
       const result = {
         success: false,
         error: String(err)
       }
       console.log('📋 Error result:', JSON.stringify(result, null, 2))
       resolve(result)
-    })
-
-    // 监听进程启动
-    childProcess.on('spawn', () => {
-      console.log('🎯 Process spawned successfully')
     })
   })
 })
