@@ -3,3 +3,8 @@ dist
 .DS_Store
 out
 *.log
+
+# 测试覆盖率
+coverage
+*.lcov
+.nyc_output
