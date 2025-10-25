@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Box, Container } from '@mui/material'
+import { Box, Container, Tabs, Tab } from '@mui/material'
 import { ChatMessages } from './components/ChatMessages'
 import { ChatInput } from './components/ChatInput'
 import { SessionSidebar } from './components/SessionSidebar'
 import { Message } from './components/MessageBubble'
 import { useSessionStorage } from '../../hooks/useSessionStorage'
+import { VncTestPanel } from '../../components/VncTestPanel'
 
 interface ChatPageProps {
   command: string
@@ -34,6 +35,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   messages
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [tabValue, setTabValue] = useState(0)
   
   const {
     sessions,
@@ -68,7 +70,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
       />
       
       <Container
-        maxWidth="md"
+        maxWidth="lg"
         sx={{ 
           flex: 1, 
           display: "flex", 
@@ -78,31 +80,47 @@ export const ChatPage: React.FC<ChatPageProps> = ({
           transition: 'margin-left 0.3s ease'
         }}
       >
-        <Box
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            bgcolor: 'white',
-            borderRadius: 2,
-            border: '1px solid',
-            borderColor: 'grey.200',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-          }}
+        {/* 添加标签切换 */}
+        <Tabs 
+          value={tabValue} 
+          onChange={(_, newValue) => setTabValue(newValue)}
+          sx={{ mb: 2 }}
         >
-          <ChatMessages
-            messages={messages}
-            messagesEndRef={messagesEndRef}
-          />
-          
-          <ChatInput
-            inputText={inputText}
-            setInputText={setInputText}
-            onSendMessage={onSendMessage}
-            isLoading={isLoading}
-          />
-        </Box>
+          <Tab label="聊天" />
+          <Tab label="VNC测试" />
+        </Tabs>
+
+        {tabValue === 0 && (
+          <Box
+            sx={{
+              flex: 1,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              bgcolor: 'white',
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'grey.200',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+            }}
+          >
+            <ChatMessages
+              messages={messages}
+              messagesEndRef={messagesEndRef}
+            />
+            
+            <ChatInput
+              inputText={inputText}
+              setInputText={setInputText}
+              onSendMessage={onSendMessage}
+              isLoading={isLoading}
+            />
+          </Box>
+        )}
+
+        {tabValue === 1 && (
+          <VncTestPanel />
+        )}
       </Container>
     </>
   )
