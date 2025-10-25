@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Session, SessionStorage } from '../types/session'
 import { Message } from '../pages/chat/components/MessageBubble'
 
@@ -18,26 +18,65 @@ const generateSessionTitle = (messages: Message[]): string => {
 export const useSessionStorage = () => {
   const [sessions, setSessions] = useState<Session[]>([])
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const loadedRef = useRef(false)
 
   // 从 localStorage 加载会话数据
   const loadSessions = useCallback(() => {
     try {
-      const stored = localStorage.getItem(SESSIONS_STORAGE_KEY)
-      if (stored) {
-        const data: SessionStorage = JSON.parse(stored)
-        setSessions(data.sessions.map(session => ({
-          ...session,
-          createdAt: new Date(session.createdAt),
-          updatedAt: new Date(session.updatedAt),
-          messages: session.messages.map(msg => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
+      // 优先使用桌面环境的文件存储
+      if (window.api?.sessions) {
+        window.api.sessions.load().then((data) => {
+          const parsedSessions = (data.sessions || []).map(session => ({
+            ...session,
+            createdAt: new Date(session.createdAt),
+            updatedAt: new Date(session.updatedAt),
+            messages: (session.messages || []).map(msg => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp)
+            }))
           }))
-        })))
-        setActiveSessionId(data.activeSessionId)
+          setSessions(parsedSessions)
+          setActiveSessionId(data.activeSessionId || (parsedSessions[0]?.id ?? null))
+          loadedRef.current = true
+        }).catch((error) => {
+          console.error('Failed to load sessions from file:', error)
+          // 退回到本地存储
+          const stored = localStorage.getItem(SESSIONS_STORAGE_KEY)
+          if (stored) {
+            const data: SessionStorage = JSON.parse(stored)
+            setSessions(data.sessions.map(session => ({
+              ...session,
+              createdAt: new Date(session.createdAt),
+              updatedAt: new Date(session.updatedAt),
+              messages: session.messages.map(msg => ({
+                ...msg,
+                timestamp: new Date(msg.timestamp)
+              }))
+            })))
+            setActiveSessionId(data.activeSessionId)
+          }
+          loadedRef.current = true
+        })
+      } else {
+        const stored = localStorage.getItem(SESSIONS_STORAGE_KEY)
+        if (stored) {
+          const data: SessionStorage = JSON.parse(stored)
+          setSessions(data.sessions.map(session => ({
+            ...session,
+            createdAt: new Date(session.createdAt),
+            updatedAt: new Date(session.updatedAt),
+            messages: session.messages.map(msg => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp)
+            }))
+          })))
+          setActiveSessionId(data.activeSessionId)
+        }
+        loadedRef.current = true
       }
     } catch (error) {
       console.error('Failed to load sessions:', error)
+      loadedRef.current = true
     }
   }, [])
 
@@ -48,7 +87,15 @@ export const useSessionStorage = () => {
         sessions: sessionsToSave,
         activeSessionId: activeId
       }
-      localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(data))
+      // 写入桌面文件（如果可用），否则写localStorage
+      if (window.api?.sessions) {
+        window.api.sessions.save(data).catch((error) => {
+          console.error('Failed to save sessions to file:', error)
+          localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(data))
+        })
+      } else {
+        localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(data))
+      }
     } catch (error) {
       console.error('Failed to save sessions:', error)
     }

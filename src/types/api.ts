@@ -44,6 +44,12 @@ declare global {
       
       selectDir: () => Promise<string | null>
       
+      // 会话持久化接口
+      sessions: {
+        load: () => Promise<import('./session').SessionStorage>
+        save: (data: import('./session').SessionStorage) => Promise<{ success: boolean; error?: string }>
+      }
+      
       vnc: {
         start: () => Promise<VncStartResult>
         stop: () => Promise<VncStopResult>

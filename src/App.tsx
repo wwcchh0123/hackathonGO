@@ -84,10 +84,12 @@ export default function App() {
   const [vncHealth, setVncHealth] = useState<ServiceHealth[]>([])
 
   const {
+    sessions,
     activeSessionId,
     getActiveSession,
     createNewSession,
     updateSessionMessages,
+    selectSession
   } = useSessionStorage()
 
   // 自定义VNC状态管理Hook
@@ -136,12 +138,7 @@ export default function App() {
     }
   }, [activeSessionId, getActiveSession])
 
-  // 如果没有活动会话，创建一个新会话
-  useEffect(() => {
-    if (!activeSessionId) {
-      createNewSession()
-    }
-  }, [activeSessionId, createNewSession])
+  // 移除自动创建会话逻辑，避免覆盖已有历史
 
   // 监听容器状态变化
   useEffect(() => {
@@ -344,6 +341,10 @@ export default function App() {
           updateVncState={updateVncState}
           resetVncState={resetVncState}
           addMessage={addMessage}
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          onNewSession={createNewSession}
+          onSessionSelect={selectSession}
         />
       </Box>
     </ThemeProvider>

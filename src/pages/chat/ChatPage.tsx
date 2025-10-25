@@ -4,9 +4,9 @@ import { ChatMessages } from './components/ChatMessages'
 import { ChatInput } from './components/ChatInput'
 import { SessionSidebar } from './components/SessionSidebar'
 import { Message } from './components/MessageBubble'
-import { useSessionStorage } from '../../hooks/useSessionStorage'
 import { VncPanel } from '../../components/VncPanel'
 import { ServiceHealth } from '../../types/api'
+import { Session } from '../../types/session'
 
 interface ChatPageProps {
   command: string
@@ -31,6 +31,11 @@ interface ChatPageProps {
   updateVncState: (updates: Partial<typeof vncState>) => void
   resetVncState: () => void
   addMessage: (type: "user" | "assistant" | "system", content: string) => void
+  // 会话相关（由App统一管理）
+  sessions: Session[]
+  activeSessionId: string | null
+  onNewSession: () => void
+  onSessionSelect: (sessionId: string) => void
 }
 
 export const ChatPage: React.FC<ChatPageProps> = ({
@@ -49,28 +54,25 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   vncHealth,
   updateVncState,
   resetVncState,
-  addMessage
+  addMessage,
+  sessions,
+  activeSessionId,
+  onNewSession,
+  onSessionSelect
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  
-  const {
-    sessions,
-    activeSessionId,
-    createNewSession,
-    selectSession
-  } = useSessionStorage()
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
   const handleNewSession = () => {
-    createNewSession()
+    onNewSession()
     setSidebarOpen(false)
   }
 
   const handleSessionSelect = (sessionId: string) => {
-    selectSession(sessionId)
+    onSessionSelect(sessionId)
     setSidebarOpen(false)
   }
 
