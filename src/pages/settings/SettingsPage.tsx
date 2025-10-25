@@ -15,8 +15,6 @@ import { ArrowBack as ArrowBackIcon, FolderOpen as FolderOpenIcon } from '@mui/i
 interface SettingsPageProps {
   command: string;
   setCommand: (value: string) => void;
-  baseArgs: string[];
-  setBaseArgs: (value: string[]) => void;
   cwd: string;
   setCwd: (value: string) => void;
   envText: string;
@@ -28,8 +26,6 @@ interface SettingsPageProps {
 export const SettingsPage: React.FC<SettingsPageProps> = ({
   command,
   setCommand,
-  baseArgs,
-  setBaseArgs,
   cwd,
   setCwd,
   envText,
@@ -82,22 +78,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 onChange={(e) => setCommand(e.target.value)} 
                 fullWidth 
                 variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': { borderColor: '#CC785C' },
-                    '&.Mui-focused fieldset': { borderColor: '#CC785C' }
-                  },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#CC785C' }
-                }}
-              />
-              <TextField 
-                label="Base Arguments" 
-                placeholder="-p --dangerously-skip-permissions" 
-                value={baseArgs.join(' ')} 
-                onChange={(e) => setBaseArgs(e.target.value.trim() ? e.target.value.split(/\s+/) : [])} 
-                fullWidth 
-                variant="outlined"
-                helperText="Arguments applied before your message"
+                helperText="CLI command to execute (e.g., claude)"
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': { borderColor: '#CC785C' },
@@ -161,21 +142,57 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </Box>
               
               <Box>
-                <Typography variant="body2" sx={{ mb: 1, color: 'grey.700' }}>
-                  Environment Variables
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: 'grey.700' }}>
+                    Environment Variables
+                  </Typography>
+                  <Button 
+                    size="small"
+                    onClick={() => {
+                      const template = `# API Configuration
+ANTHROPIC_API_KEY=your-api-key-here
+
+# Optional: Custom base URL (if using proxy/gateway)
+# ANTHROPIC_BASE_URL=https://api.anthropic.com
+
+# Optional: Model preferences
+# ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
+# ANTHROPIC_DEFAULT_SONNET_MODEL=claude-3-5-sonnet-20241022
+# ANTHROPIC_DEFAULT_OPUS_MODEL=claude-3-opus-20240229
+# ANTHROPIC_DEFAULT_HAIKU_MODEL=claude-3-haiku-20240307
+
+# Other environment variables...`;
+                      setEnvText(template);
+                    }}
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      color: '#CC785C',
+                      '&:hover': {
+                        bgcolor: '#CC785C0A'
+                      }
+                    }}
+                  >
+                    Use Template
+                  </Button>
+                </Box>
                 <TextField 
                   placeholder="KEY=VALUE (one per line)" 
                   value={envText} 
                   onChange={(e) => setEnvText(e.target.value)} 
                   fullWidth 
                   multiline 
-                  rows={4}
+                  rows={8}
                   variant="outlined"
+                  helperText="Configure API keys, base URLs, and model preferences"
                   sx={{
                     '& .MuiOutlinedInput-root': {
+                      fontFamily: 'monospace',
+                      fontSize: '0.875rem',
                       '&:hover fieldset': { borderColor: '#CC785C' },
                       '&.Mui-focused fieldset': { borderColor: '#CC785C' }
+                    },
+                    '& .MuiFormHelperText-root': {
+                      color: 'grey.600'
                     }
                   }}
                 />

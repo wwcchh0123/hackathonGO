@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>useStream Hook 测试</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .container {
+            border: 1px solid #444;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        h2 {
+            color: #4fc3f7;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .user {
+            background: #264653;
+            text-align: right;
+        }
+        .assistant {
+            background: #2a9d8f;
+        }
+        .stream {
+            background: #e76f51;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background: #4fc3f7;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #29b6f6;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        input {
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            background: #2c2c2c;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .stats {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #d32f2f;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🧪 useStream Hook 手动测试</h2>
+        
+        <div class="stats">
+            <strong>状态：</strong>
+            <span id="status">空闲</span> |
+            <strong>消息数：</strong>
+            <span id="messageCount">0</span> |
+            <strong>流文本：</strong>
+            <span id="streamText"></span>
+        </div>
+
+        <div class="controls">
+            <input type="text" id="messageInput" placeholder="输入消息..." value="Hello Claude">
+            <button id="startBtn">开始流</button>
+            <button id="pauseBtn" disabled>暂停</button>
+            <button id="resumeBtn" disabled>恢复</button>
+            <button id="abortBtn" disabled>中止</button>
+            <button id="clearBtn">清空</button>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div id="messages"></div>
+    </div>
+
+    <script>
+        // 模拟 useStream Hook 的行为
+        class StreamSimulator {
+            constructor() {
+                this.messages = [];
+                this.currentStream = null;
+                this.isStreaming = false;
+                this.isPaused = false;
+                this.error = null;
+                this.listeners = {};
+            }
+
+            startStream(message, options = {}) {
+                console.log('📤 startStream:', message, options);
+                
+                // 添加用户消息
+                this.messages.push({
+                    id: Date.now() + '-user',
+                    role: 'user',
+                    content: message,
+                    timestamp: Date.now()
+                });
+                
+                // 开始流
+                this.isStreaming = true;
+                this.currentStream = {
+                    id: Date.now() + '-stream',
+                    chunks: [],
+                    startTime: Date.now()
+                };
+                
+                this.emit('update');
+                
+                // 模拟流式响应
+                this.simulateStream();
+                
+                return this.currentStream.id;
+            }
+            
+            simulateStream() {
+                const responses = [
+                    { type: 'message_start', id: 'msg_123' },
+                    { type: 'delta', delta: { text: 'I' } },
+                    { type: 'delta', delta: { text: ' am' } },
+                    { type: 'delta', delta: { text: ' a' } },
+                    { type: 'delta', delta: { text: ' simulated' } },
+                    { type: 'delta', delta: { text: ' stream' } },
+                    { type: 'delta', delta: { text: ' response' } },
+                    { type: 'delta', delta: { text: '!' } },
+                    { type: 'complete' }
+                ];
+                
+                let index = 0;
+                const interval = setInterval(() => {
+                    if (!this.isStreaming || index >= responses.length) {
+                        clearInterval(interval);
+                        this.endStream();
+                        return;
+                    }
+                    
+                    if (!this.isPaused) {
+                        const chunk = responses[index];
+                        this.handleChunk(chunk);
+                        index++;
+                    }
+                }, 200);
+                
+                this.intervalId = interval;
+            }
+            
+            handleChunk(chunk) {
+                if (this.currentStream) {
+                    this.currentStream.chunks.push(chunk);
+                    this.emit('update');
+                }
+            }
+            
+            endStream() {
+                if (this.currentStream) {
+                    const text = this.getAccumulatedText();
+                    if (text) {
+                        this.messages.push({
+                            id: this.currentStream.id + '-assistant',
+                            role: 'assistant',
+                            content: text,
+                            timestamp: this.currentStream.startTime
+                        });
+                    }
+                }
+                
+                this.isStreaming = false;
+                this.isPaused = false;
+                this.currentStream = null;
+                this.emit('update');
+            }
+            
+            pauseStream() {
+                this.isPaused = true;
+                this.emit('update');
+            }
+            
+            resumeStream() {
+                this.isPaused = false;
+                this.emit('update');
+            }
+            
+            abortStream() {
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                }
+                this.isStreaming = false;
+                this.isPaused = false;
+                this.currentStream = null;
+                this.emit('update');
+            }
+            
+            clearMessages() {
+                this.messages = [];
+                this.error = null;
+                this.emit('update');
+            }
+            
+            getAccumulatedText() {
+                if (!this.currentStream) return '';
+                return this.currentStream.chunks
+                    .filter(c => c.type === 'delta' && c.delta?.text)
+                    .map(c => c.delta.text)
+                    .join('');
+            }
+            
+            on(event, callback) {
+                if (!this.listeners[event]) {
+                    this.listeners[event] = [];
+                }
+                this.listeners[event].push(callback);
+            }
+            
+            emit(event, data) {
+                if (this.listeners[event]) {
+                    this.listeners[event].forEach(cb => cb(data));
+                }
+            }
+        }
+        
+        // 初始化
+        const stream = new StreamSimulator();
+        
+        // UI 更新
+        function updateUI() {
+            // 状态
+            let status = '空闲';
+            if (stream.isStreaming) {
+                status = stream.isPaused ? '已暂停' : '流式传输中...';
+            }
+            document.getElementById('status').textContent = status;
+            
+            // 消息数
+            document.getElementById('messageCount').textContent = stream.messages.length;
+            
+            // 流文本
+            document.getElementById('streamText').textContent = stream.getAccumulatedText() || '(无)';
+            
+            // 消息列表
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = stream.messages.map(msg => `
+                <div class="message ${msg.role}">
+                    <strong>${msg.role === 'user' ? '👤 用户' : '🤖 助手'}:</strong> ${msg.content}
+                </div>
+            `).join('');
+            
+            // 当前流
+            if (stream.currentStream) {
+                messagesDiv.innerHTML += `
+                    <div class="message stream">
+                        <strong>🔄 流式响应:</strong> ${stream.getAccumulatedText()}<span style="animation: pulse 0.5s infinite;">▊</span>
+                    </div>
+                `;
+            }
+            
+            // 按钮状态
+            document.getElementById('startBtn').disabled = stream.isStreaming;
+            document.getElementById('pauseBtn').disabled = !stream.isStreaming || stream.isPaused;
+            document.getElementById('resumeBtn').disabled = !stream.isStreaming || !stream.isPaused;
+            document.getElementById('abortBtn').disabled = !stream.isStreaming;
+        }
+        
+        // 监听更新
+        stream.on('update', updateUI);
+        
+        // 绑定按钮
+        document.getElementById('startBtn').onclick = () => {
+            const message = document.getElementById('messageInput').value;
+            if (message) {
+                stream.startStream(message);
+                document.getElementById('messageInput').value = '';
+            }
+        };
+        
+        document.getElementById('pauseBtn').onclick = () => stream.pauseStream();
+        document.getElementById('resumeBtn').onclick = () => stream.resumeStream();
+        document.getElementById('abortBtn').onclick = () => stream.abortStream();
+        document.getElementById('clearBtn').onclick = () => stream.clearMessages();
+        
+        // 回车发送
+        document.getElementById('messageInput').onkeypress = (e) => {
+            if (e.key === 'Enter' && !stream.isStreaming) {
+                document.getElementById('startBtn').click();
+            }
+        };
+        
+        // 初始更新
+        updateUI();
+        
+        console.log('✨ useStream Hook 模拟器已就绪');
+        console.log('📝 在控制台可以访问 stream 对象进行调试');
+    </script>
+</body>
+</html>

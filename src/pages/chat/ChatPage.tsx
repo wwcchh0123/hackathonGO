@@ -10,7 +10,6 @@ import { Session } from '../../types/session'
 
 interface ChatPageProps {
   command: string
-  baseArgs: string[]
   cwd: string
   envText: string
   inputText: string
@@ -40,7 +39,6 @@ interface ChatPageProps {
 
 export const ChatPage: React.FC<ChatPageProps> = ({
   command,
-  baseArgs,
   cwd,
   envText,
   inputText,
