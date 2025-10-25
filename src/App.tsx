@@ -1,32 +1,11 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useCallback } from "react"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
 import { Box, CssBaseline } from "@mui/material"
 import { AppHeader } from "./components/shared"
 import { SettingsPage } from "./pages/settings"
 import { ChatPage, Message } from "./pages/chat"
 import { useSessionStorage } from "./hooks/useSessionStorage"
-
-// API types
-declare global {
-  interface Window {
-    api: {
-      sendMessage: (options: {
-        command: string
-        baseArgs?: string[]
-        message: string
-        cwd?: string
-        env?: Record<string, string>
-      }) => Promise<{
-        success: boolean
-        stdout?: string
-        stderr?: string
-        error?: string
-        exitCode?: number
-      }>
-      selectDir: () => Promise<string | null>
-    }
-  }
-}
+import { ServiceHealth } from "./types/api"
 
 const theme = createTheme({
   palette: {
@@ -92,12 +71,40 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // VNC相关状态
+  const [vncState, setVncState] = useState({
+    isActive: false,
+    isLoading: false,
+    url: '',
+    error: '',
+    containerId: ''
+  })
+
+  // VNC服务健康状态
+  const [vncHealth, setVncHealth] = useState<ServiceHealth[]>([])
+
   const {
     activeSessionId,
     getActiveSession,
     createNewSession,
     updateSessionMessages,
   } = useSessionStorage()
+
+  // 自定义VNC状态管理Hook
+  const updateVncState = useCallback((updates: Partial<typeof vncState>) => {
+    setVncState(prev => ({ ...prev, ...updates }))
+  }, [])
+  
+  const resetVncState = useCallback(() => {
+    setVncState({
+      isActive: false,
+      isLoading: false,
+      url: '',
+      error: '',
+      containerId: ''
+    })
+    setVncHealth([])
+  }, [])
 
   const addMessage = (
     type: "user" | "assistant" | "system",
@@ -135,6 +142,48 @@ export default function App() {
       createNewSession()
     }
   }, [activeSessionId, createNewSession])
+
+  // 监听容器状态变化
+  useEffect(() => {
+    if (!window.api?.vnc) return
+
+    const unsubscribe = window.api.vnc.onContainerStopped(() => {
+      console.log('VNC容器已停止')
+      updateVncState({
+        isActive: false,
+        error: '容器意外停止'
+      })
+      setVncHealth([])
+      addMessage("system", "VNC容器已停止")
+    })
+    
+    return unsubscribe
+  }, [updateVncState])
+
+  // 定期检查VNC状态
+  useEffect(() => {
+    if (!vncState.isActive || !window.api?.vnc) return
+    
+    const checkStatus = async () => {
+      try {
+        const status = await window.api.vnc.status()
+        if (!status.running) {
+          updateVncState({
+            isActive: false,
+            error: '容器已停止'
+          })
+          setVncHealth([])
+        } else if (status.health) {
+          setVncHealth(status.health)
+        }
+      } catch (error) {
+        console.error('检查VNC状态失败:', error)
+      }
+    }
+    
+    const interval = setInterval(checkStatus, 10000)
+    return () => clearInterval(interval)
+  }, [vncState.isActive, updateVncState])
 
   // restore persisted config
   useEffect(() => {
@@ -290,6 +339,11 @@ export default function App() {
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
           messages={messages}
+          vncState={vncState}
+          vncHealth={vncHealth}
+          updateVncState={updateVncState}
+          resetVncState={resetVncState}
+          addMessage={addMessage}
         />
       </Box>
     </ThemeProvider>
