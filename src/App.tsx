@@ -1,11 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
-import { Box, Container, CssBaseline } from "@mui/material"
-import { AppHeader } from "./components/AppHeader"
-import { SettingsPage } from "./components/SettingsPage"
-import { ChatMessages } from "./components/ChatMessages"
-import { ChatInput } from "./components/ChatInput"
-import { Message } from "./components/MessageBubble"
+import { Box, CssBaseline } from "@mui/material"
+import { AppHeader } from "./components/shared"
+import { SettingsPage } from "./pages/settings"
+import { ChatPage, Message } from "./pages/chat"
+import { useSessionStorage } from "./hooks/useSessionStorage"
 
 // API types
 declare global {
@@ -29,7 +28,6 @@ declare global {
   }
 }
 
-
 const theme = createTheme({
   palette: {
     mode: "light",
@@ -41,17 +39,18 @@ const theme = createTheme({
       paper: "#ffffff",
     },
     grey: {
-      50: '#fafafa',
-      100: '#f5f5f5',
-      200: '#eeeeee',
-      300: '#e0e0e0',
-      500: '#9e9e9e',
-      600: '#757575',
-      700: '#616161',
-    }
+      50: "#fafafa",
+      100: "#f5f5f5",
+      200: "#eeeeee",
+      300: "#e0e0e0",
+      500: "#9e9e9e",
+      600: "#757575",
+      700: "#616161",
+    },
   },
   typography: {
-    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily:
+      '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     h5: {
       fontWeight: 600,
     },
@@ -63,7 +62,7 @@ const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: 'none',
+          textTransform: "none",
           borderRadius: 8,
           fontWeight: 500,
         },
@@ -81,15 +80,24 @@ const theme = createTheme({
 
 export default function App() {
   const [command, setCommand] = useState("claude")
-  const [baseArgs, setBaseArgs] = useState(["-p", "--dangerously-skip-permissions"])
+  const [baseArgs, setBaseArgs] = useState([
+    "-p",
+    "--dangerously-skip-permissions",
+  ])
   const [cwd, setCwd] = useState("")
   const [envText, setEnvText] = useState("")
   const [inputText, setInputText] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
-  const [currentPage, setCurrentPage] = useState<'chat' | 'settings'>('chat')
+  const [currentPage, setCurrentPage] = useState<"chat" | "settings">("chat")
   const [isLoading, setIsLoading] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const {
+    activeSessionId,
+    getActiveSession,
+    createNewSession,
+    updateSessionMessages,
+  } = useSessionStorage()
 
   const addMessage = (
     type: "user" | "assistant" | "system",
@@ -101,12 +109,32 @@ export default function App() {
       content,
       timestamp: new Date(),
     }
-    setMessages((prev) => [...prev, newMessage])
+    setMessages((prev) => {
+      const updated = [...prev, newMessage]
+      // 如果有活动会话，更新会话消息
+      if (activeSessionId) {
+        updateSessionMessages(activeSessionId, updated)
+      }
+      return updated
+    })
   }
 
+  // 当活动会话改变时，加载会话消息
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    const activeSession = getActiveSession()
+    if (activeSession) {
+      setMessages(activeSession.messages)
+    } else {
+      setMessages([])
+    }
+  }, [activeSessionId, getActiveSession])
+
+  // 如果没有活动会话，创建一个新会话
+  useEffect(() => {
+    if (!activeSessionId) {
+      createNewSession()
+    }
+  }, [activeSessionId, createNewSession])
 
   // restore persisted config
   useEffect(() => {
@@ -130,16 +158,26 @@ export default function App() {
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || isLoading) return
-    
+
+    // 确保有活动会话
+    let currentSessionId = activeSessionId
+    if (!currentSessionId) {
+      currentSessionId = createNewSession()
+    }
+
     const userMessage = inputText.trim()
     console.log("🔵 Sending message:", userMessage)
     addMessage("user", userMessage)
     setInputText("")
     setIsLoading(true)
-    
+
     try {
       // 检查API是否可用（在浏览器打开时不可用）
-      console.log("🔍 Checking window.api:", !!window.api, !!window.api?.sendMessage)
+      console.log(
+        "🔍 Checking window.api:",
+        !!window.api,
+        !!window.api?.sendMessage
+      )
       if (!window.api || !window.api.sendMessage) {
         console.log("❌ window.api not available")
         addMessage(
@@ -161,9 +199,9 @@ export default function App() {
         baseArgs,
         message: userMessage,
         cwd,
-        env
+        env,
       }
-      
+
       console.log("📤 Sending to IPC:", options)
       const result = await window.api.sendMessage(options)
       console.log("📥 Received from IPC:", result)
@@ -181,7 +219,7 @@ export default function App() {
       console.log("💥 Frontend error:", error)
       addMessage("system", `Failed to send message: ${error}`)
     }
-    
+
     setIsLoading(false)
   }
 
@@ -193,13 +231,16 @@ export default function App() {
       )
       return
     }
-    
+
     const dir = await window.api.selectDir()
     if (dir) setCwd(dir)
   }
 
+  const handleToggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen)
+  }
 
-  if (currentPage === 'settings') {
+  if (currentPage === "settings") {
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
@@ -213,7 +254,7 @@ export default function App() {
           envText={envText}
           setEnvText={setEnvText}
           onPickCwd={handlePickCwd}
-          onBack={() => setCurrentPage('chat')}
+          onBack={() => setCurrentPage("chat")}
         />
       </ThemeProvider>
     )
@@ -222,42 +263,34 @@ export default function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ height: "100vh", display: "flex", flexDirection: "column", bgcolor: '#fafafa' }}>
+      <Box
+        sx={{
+          height: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          bgcolor: "#fafafa",
+        }}
+      >
         <AppHeader
           currentPage={currentPage}
-          onNavigateToSettings={() => setCurrentPage('settings')}
+          onNavigateToSettings={() => setCurrentPage("settings")}
+          onToggleSidebar={handleToggleSidebar}
+          sidebarOpen={sidebarOpen}
         />
 
-        <Container
-          maxWidth="md"
-          sx={{ flex: 1, display: "flex", flexDirection: "column", py: 3 }}
-        >
-          <Box
-            sx={{
-              flex: 1,
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              bgcolor: 'white',
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: 'grey.200',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-            }}
-          >
-            <ChatMessages
-              messages={messages}
-              messagesEndRef={messagesEndRef}
-            />
-            
-            <ChatInput
-              inputText={inputText}
-              setInputText={setInputText}
-              onSendMessage={handleSendMessage}
-              isLoading={isLoading}
-            />
-          </Box>
-        </Container>
+        <ChatPage
+          command={command}
+          baseArgs={baseArgs}
+          cwd={cwd}
+          envText={envText}
+          inputText={inputText}
+          setInputText={setInputText}
+          onSendMessage={handleSendMessage}
+          isLoading={isLoading}
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          messages={messages}
+        />
       </Box>
     </ThemeProvider>
   )

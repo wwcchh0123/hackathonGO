@@ -1,15 +1,19 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, IconButton, Box } from '@mui/material';
-import { Settings as SettingsIcon } from '@mui/icons-material';
+import { Settings as SettingsIcon, Menu as MenuIcon } from '@mui/icons-material';
 
 interface AppHeaderProps {
   currentPage: 'chat' | 'settings';
   onNavigateToSettings: () => void;
+  onToggleSidebar?: () => void;
+  sidebarOpen?: boolean;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   currentPage,
   onNavigateToSettings,
+  onToggleSidebar,
+  sidebarOpen = false,
 }) => (
   <AppBar 
     position="static" 
@@ -22,6 +26,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     }}
   >
     <Toolbar sx={{ py: 1 }}>
+      {currentPage === 'chat' && onToggleSidebar && (
+        <IconButton 
+          onClick={onToggleSidebar}
+          size="small"
+          sx={{ 
+            mr: 2,
+            color: '#CC785C',
+            '&:hover': { bgcolor: '#CC785C0A' }
+          }}
+        >
+          <MenuIcon />
+        </IconButton>
+      )}
+      
       <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
         <Box
           sx={{
