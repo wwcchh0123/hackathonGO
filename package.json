@@ -18,9 +18,11 @@
     "@emotion/styled": "^11.13.0",
     "@mui/icons-material": "^7.3.4",
     "@mui/material": "^6.1.2",
+    "@types/react-router-dom": "^5.3.3",
     "electron": "^30.0.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.9.4"
   },
   "devDependencies": {
     "@types/node": "^20.11.30",

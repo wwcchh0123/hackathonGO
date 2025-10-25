@@ -15,7 +15,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
     sx={{ 
       flex: 1, 
       overflow: 'auto', 
-      p: 1,
+      p: 3,
       display: 'flex',
       flexDirection: 'column',
     }}
@@ -27,13 +27,30 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
         justifyContent: 'center', 
         height: '100%',
         flexDirection: 'column',
-        opacity: 0.6
+        textAlign: 'center'
       }}>
-        <Typography variant="h6" gutterBottom>
-          Welcome to Claude Code Desktop
+        <Box
+          sx={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            bgcolor: '#CC785C',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mb: 3,
+          }}
+        >
+          <Typography variant="h4" sx={{ color: 'white', fontWeight: 600 }}>
+            C
+          </Typography>
+        </Box>
+        <Typography variant="h5" sx={{ mb: 1, fontWeight: 600, color: '#1a1a1a' }}>
+          Welcome to Claude Code
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Type your message below to start chatting with Claude Code!
+        <Typography variant="body1" sx={{ color: 'grey.600', maxWidth: 400 }}>
+          Start a conversation with Claude Code to get help with your development tasks. 
+          Ask questions, request code reviews, or get assistance with debugging.
         </Typography>
       </Box>
     ) : (

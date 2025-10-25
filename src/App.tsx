@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
 import { Box, Container, CssBaseline } from "@mui/material"
 import { AppHeader } from "./components/AppHeader"
-import { SettingsPanel } from "./components/SettingsPanel"
+import { SettingsPage } from "./components/SettingsPage"
 import { ChatMessages } from "./components/ChatMessages"
 import { ChatInput } from "./components/ChatInput"
 import { Message } from "./components/MessageBubble"
@@ -32,17 +32,50 @@ declare global {
 
 const theme = createTheme({
   palette: {
-    mode: "dark",
+    mode: "light",
     primary: {
-      main: "#2196f3",
+      main: "#CC785C",
     },
     background: {
-      default: "#0a0a0a",
-      paper: "#1a1a1a",
+      default: "#ffffff",
+      paper: "#ffffff",
     },
+    grey: {
+      50: '#fafafa',
+      100: '#f5f5f5',
+      200: '#eeeeee',
+      300: '#e0e0e0',
+      500: '#9e9e9e',
+      600: '#757575',
+      700: '#616161',
+    }
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    h5: {
+      fontWeight: 600,
+    },
+    h6: {
+      fontWeight: 600,
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          borderRadius: 8,
+          fontWeight: 500,
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+        },
+      },
+    },
   },
 })
 
@@ -53,7 +86,7 @@ export default function App() {
   const [envText, setEnvText] = useState("")
   const [inputText, setInputText] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
-  const [showSettings, setShowSettings] = useState(false)
+  const [currentPage, setCurrentPage] = useState<'chat' | 'settings'>('chat')
   const [isLoading, setIsLoading] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -166,40 +199,50 @@ export default function App() {
   }
 
 
+  if (currentPage === 'settings') {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <SettingsPage
+          command={command}
+          setCommand={setCommand}
+          baseArgs={baseArgs}
+          setBaseArgs={setBaseArgs}
+          cwd={cwd}
+          setCwd={setCwd}
+          envText={envText}
+          setEnvText={setEnvText}
+          onPickCwd={handlePickCwd}
+          onBack={() => setCurrentPage('chat')}
+        />
+      </ThemeProvider>
+    )
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+      <Box sx={{ height: "100vh", display: "flex", flexDirection: "column", bgcolor: '#fafafa' }}>
         <AppHeader
-          showSettings={showSettings}
-          onToggleSettings={() => setShowSettings(!showSettings)}
+          currentPage={currentPage}
+          onNavigateToSettings={() => setCurrentPage('settings')}
         />
 
         <Container
           maxWidth="md"
-          sx={{ flex: 1, display: "flex", flexDirection: "column", py: 2 }}
+          sx={{ flex: 1, display: "flex", flexDirection: "column", py: 3 }}
         >
-
-          {showSettings && (
-            <SettingsPanel
-              command={command}
-              setCommand={setCommand}
-              baseArgs={baseArgs}
-              setBaseArgs={setBaseArgs}
-              cwd={cwd}
-              setCwd={setCwd}
-              envText={envText}
-              setEnvText={setEnvText}
-              onPickCwd={handlePickCwd}
-            />
-          )}
-
           <Box
             sx={{
               flex: 1,
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
+              bgcolor: 'white',
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'grey.200',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}
           >
             <ChatMessages

@@ -21,29 +21,63 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       sx={{
         display: 'flex',
         justifyContent: isUser ? 'flex-end' : 'flex-start',
-        mb: 1,
+        mb: 3,
+        alignItems: 'flex-start',
+        gap: 2
       }}
     >
-      <Paper
-        elevation={1}
+      {!isUser && (
+        <Box
+          sx={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            bgcolor: isSystem ? '#f5f5f5' : '#CC785C',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            mt: 0.5
+          }}
+        >
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: isSystem ? '#666' : 'white', 
+              fontWeight: 600, 
+              fontSize: '12px' 
+            }}
+          >
+            {isSystem ? '!' : 'C'}
+          </Typography>
+        </Box>
+      )}
+      
+      <Box
         sx={{
           maxWidth: '70%',
-          p: 1.5,
+          p: 2,
           bgcolor: isUser 
-            ? 'primary.main' 
+            ? '#CC785C' 
             : isSystem 
-              ? 'action.hover'
-              : 'background.paper',
-          color: isUser ? 'primary.contrastText' : 'text.primary',
-          borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+              ? '#f8f9fa'
+              : '#f5f5f5',
+          color: isUser 
+            ? 'white' 
+            : isSystem 
+              ? '#e74c3c'
+              : '#1a1a1a',
+          borderRadius: 2,
+          border: isSystem ? '1px solid #fee' : 'none',
         }}
       >
         <Typography
-          variant="body2"
+          variant="body1"
           sx={{
             whiteSpace: 'pre-wrap',
-            fontFamily: isSystem ? 'monospace' : 'inherit',
-            fontSize: isSystem ? '0.75rem' : '0.875rem',
+            fontFamily: isSystem ? 'SFMono-Regular, Consolas, monospace' : 'inherit',
+            fontSize: isSystem ? '13px' : '14px',
+            lineHeight: 1.5,
           }}
         >
           {message.content}
@@ -52,14 +86,41 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           variant="caption"
           sx={{
             display: 'block',
-            mt: 0.5,
+            mt: 1,
             opacity: 0.7,
-            fontSize: '0.7rem',
+            fontSize: '11px',
           }}
         >
           {message.timestamp.toLocaleTimeString()}
         </Typography>
-      </Paper>
+      </Box>
+      
+      {isUser && (
+        <Box
+          sx={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            bgcolor: '#e0e0e0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            mt: 0.5
+          }}
+        >
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: '#666', 
+              fontWeight: 600, 
+              fontSize: '12px' 
+            }}
+          >
+            U
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 };

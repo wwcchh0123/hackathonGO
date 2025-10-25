@@ -16,20 +16,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isLoading,
 }) => (
   <Paper 
-    elevation={2} 
+    elevation={0} 
     sx={{ 
-      p: 1, 
-      mt: 1,
+      p: 2,
+      borderTop: '1px solid',
+      borderColor: 'grey.200',
+      borderRadius: 0,
       display: 'flex', 
       alignItems: 'flex-end',
-      gap: 1
+      gap: 2
     }}
   >
     <TextField
       fullWidth
       multiline
       maxRows={4}
-      placeholder={isLoading ? "Processing..." : "Type your message to Claude Code..."}
+      placeholder={isLoading ? "Processing..." : "Ask Claude Code anything..."}
       value={inputText}
       onChange={(e) => setInputText(e.target.value)}
       onKeyDown={(e) => {
@@ -40,25 +42,32 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       }}
       disabled={isLoading}
       variant="outlined"
-      size="small"
       sx={{
         '& .MuiOutlinedInput-root': {
           borderRadius: 2,
+          borderColor: 'grey.300',
+          '&:hover fieldset': { borderColor: '#CC785C' },
+          '&.Mui-focused fieldset': { borderColor: '#CC785C' },
+          '& fieldset': { borderWidth: '1px' }
         }
       }}
     />
     <IconButton 
       onClick={onSendMessage}
       disabled={!inputText.trim() || isLoading}
-      color="primary"
       sx={{ 
-        bgcolor: 'primary.main',
+        bgcolor: '#CC785C',
         color: 'white',
-        '&:hover': { bgcolor: 'primary.dark' },
-        '&:disabled': { bgcolor: 'action.disabled' }
+        width: 40,
+        height: 40,
+        '&:hover': { bgcolor: '#B5694A' },
+        '&:disabled': { 
+          bgcolor: 'grey.300',
+          color: 'grey.500'
+        }
       }}
     >
-      <SendIcon />
+      <SendIcon fontSize="small" />
     </IconButton>
   </Paper>
 );
