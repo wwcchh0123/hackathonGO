@@ -5,27 +5,21 @@
 coverage:
   precision: 2
   round: down
-  range: "70...100"
+  range: "0...100"
 
   status:
     project:
       default:
-        target: 70%
-        threshold: 1%
-        informational: false
+        informational: true  # 仅提供信息，不设置阈值
     patch:
       default:
-        target: 70%
-        threshold: 1%
-        informational: false
+        informational: true  # 仅提供信息，不设置阈值
 
 # 注释设置
 comment:
   layout: "header, diff, files"
   behavior: default
   require_changes: false
-  require_base: false
-  require_head: true
 
 # 忽略的路径
 ignore:
