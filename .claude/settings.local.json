@@ -14,7 +14,8 @@
       "Bash(npx ts-node:*)",
       "Bash(npx tsc:*)",
       "Bash(node:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(cp:*)"
     ],
     "deny": [],
     "ask": []
