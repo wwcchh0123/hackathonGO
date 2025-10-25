@@ -60,8 +60,11 @@ const theme = createTheme({
 export default function App() {
   const [command, setCommand] = useState("claude")
   const [baseArgs, setBaseArgs] = useState([
+    "--output-format",
+    "stream-json",
     "-p",
     "--dangerously-skip-permissions",
+    "--verbose"
   ])
   const [cwd, setCwd] = useState("")
   const [envText, setEnvText] = useState("")
@@ -128,6 +131,45 @@ export default function App() {
     })
   }
 
+  // 用于流式更新的消息管理
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
+
+  const updateStreamingMessage = (content: string, replace: boolean = false) => {
+    if (!streamingMessageId) return
+    
+    setMessages((prev) => {
+      const updated = prev.map(msg => 
+        msg.id === streamingMessageId 
+          ? { ...msg, content: replace ? content : msg.content + "\n" + content }
+          : msg
+      )
+      // 如果有活动会话，更新会话消息
+      if (activeSessionId) {
+        updateSessionMessages(activeSessionId, updated)
+      }
+      return updated
+    })
+  }
+
+  const startStreamingMessage = () => {
+    const messageId = Date.now().toString()
+    const newMessage: Message = {
+      id: messageId,
+      type: "assistant",
+      content: "",
+      timestamp: new Date(),
+    }
+    setStreamingMessageId(messageId)
+    setMessages((prev) => {
+      const updated = [...prev, newMessage]
+      if (activeSessionId) {
+        updateSessionMessages(activeSessionId, updated)
+      }
+      return updated
+    })
+    return messageId
+  }
+
   // 当活动会话改变时，加载会话消息
   useEffect(() => {
     const activeSession = getActiveSession()
@@ -182,6 +224,44 @@ export default function App() {
     return () => clearInterval(interval)
   }, [vncState.isActive, updateVncState])
 
+  // 监听Claude Code流式事件
+  useEffect(() => {
+    if (!window.api?.onClaudeStream) return
+
+    const handleStreamEvent = (event: any, message: any) => {
+      console.log('🎯 收到流式事件:', message)
+
+      switch (message.type) {
+        case 'stream-start':
+          startStreamingMessage()
+          break
+          
+        case 'stream-data':
+          if (message.data?.content) {
+            updateStreamingMessage(message.data.content)
+          }
+          break
+          
+        case 'stream-end':
+          if (message.data?.success && message.data.result) {
+            updateStreamingMessage(`\n\n${message.data.result}`) // 追加最终结果
+          } else if (message.data?.error) {
+            updateStreamingMessage(`\n\n❌ 执行失败: ${message.data.error}`)
+          }
+          setStreamingMessageId(null)
+          break
+          
+        case 'stream-error':
+          updateStreamingMessage(`❌ 执行错误: ${message.data?.content || '未知错误'}`, true)
+          setStreamingMessageId(null)
+          break
+      }
+    }
+
+    const unsubscribe = window.api.onClaudeStream(handleStreamEvent)
+    return unsubscribe
+  }, [streamingMessageId])
+
   // restore persisted config
   useEffect(() => {
     try {
@@ -189,7 +269,13 @@ export default function App() {
       if (raw) {
         const cfg = JSON.parse(raw)
         setCommand(cfg.command || "claude")
-        setBaseArgs(cfg.baseArgs || ["-p", "--dangerously-skip-permissions"])
+        // 确保包含stream-json格式参数
+        const savedArgs = cfg.baseArgs || []
+        if (!savedArgs.includes("--output-format") || !savedArgs.includes("stream-json")) {
+          setBaseArgs(["--output-format", "stream-json", "-p", "--dangerously-skip-permissions", "--verbose"])
+        } else {
+          setBaseArgs(savedArgs)
+        }
         setCwd(cfg.cwd || "")
         setEnvText(cfg.envText || "")
       }
@@ -202,7 +288,7 @@ export default function App() {
     localStorage.setItem("config", JSON.stringify(cfg))
   }, [command, baseArgs, cwd, envText])
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (streamingSessionId?: string) => {
     if (!inputText.trim() || isLoading) return
 
     // 确保有活动会话
@@ -213,8 +299,6 @@ export default function App() {
 
     const userMessage = inputText.trim()
     console.log("🔵 Sending message:", userMessage)
-    addMessage("user", userMessage)
-    setInputText("")
     setIsLoading(true)
 
     try {
@@ -246,20 +330,25 @@ export default function App() {
         message: userMessage,
         cwd,
         env,
+        sessionId: streamingSessionId // 传递流式会话ID
       }
 
       console.log("📤 Sending to IPC:", options)
       const result = await window.api.sendMessage(options)
       console.log("📥 Received from IPC:", result)
 
-      if (result.success && result.stdout) {
-        addMessage("assistant", result.stdout)
-      } else if (result.stderr) {
-        addMessage("system", `Error: ${result.stderr}`)
-      } else if (result.error) {
-        addMessage("system", `Error: ${result.error}`)
-      } else {
-        addMessage("system", "No response from Claude Code CLI")
+      // 不再自动添加结果到聊天消息，因为结果会通过流式事件处理
+      // 只处理非JSON格式输出的兼容性情况
+      if (!baseArgs.includes("--output-format") || !baseArgs.includes("stream-json")) {
+        if (result.success && result.stdout) {
+          addMessage("assistant", result.stdout)
+        } else if (result.stderr) {
+          addMessage("system", `Error: ${result.stderr}`)
+        } else if (result.error) {
+          addMessage("system", `Error: ${result.error}`)
+        } else {
+          addMessage("system", "No response from Claude Code CLI")
+        }
       }
     } catch (error) {
       console.log("💥 Frontend error:", error)
@@ -331,7 +420,6 @@ export default function App() {
           envText={envText}
           inputText={inputText}
           setInputText={setInputText}
-          onSendMessage={handleSendMessage}
           isLoading={isLoading}
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}

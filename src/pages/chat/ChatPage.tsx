@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Box, Grid } from '@mui/material'
 import { ChatMessages } from './components/ChatMessages'
 import { ChatInput } from './components/ChatInput'
@@ -15,7 +15,6 @@ interface ChatPageProps {
   envText: string
   inputText: string
   setInputText: (text: string) => void
-  onSendMessage: () => void
   isLoading: boolean
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
@@ -45,7 +44,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   envText,
   inputText,
   setInputText,
-  onSendMessage,
   isLoading,
   sidebarOpen,
   setSidebarOpen,
@@ -61,10 +59,33 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   onSessionSelect
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [streamingSessionId, setStreamingSessionId] = useState<string | null>(null)
+  const [isStreamingActive, setIsStreamingActive] = useState(false)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // 流式事件处理现在移到了App.tsx中的父组件
+  // 这里只需要处理本地状态
+  useEffect(() => {
+    if (!window.api?.onClaudeStream) return
+
+    const handleStreamEvent = (event: any, message: any) => {
+      if (message.sessionId !== streamingSessionId) return
+
+      switch (message.type) {
+        case 'stream-end':
+        case 'stream-error':
+          setIsStreamingActive(false)
+          setStreamingSessionId(null)
+          break
+      }
+    }
+
+    const unsubscribe = window.api.onClaudeStream(handleStreamEvent)
+    return unsubscribe
+  }, [streamingSessionId])
 
   const handleNewSession = () => {
     onNewSession()
@@ -74,6 +95,55 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   const handleSessionSelect = (sessionId: string) => {
     onSessionSelect(sessionId)
     setSidebarOpen(false)
+  }
+
+  // 直接处理消息发送，避免双重调用
+  const handleSendMessage = async () => {
+    if (!inputText.trim() || isLoading || isStreamingActive) return
+
+    const userMessage = inputText.trim()
+    addMessage("user", userMessage)
+    setInputText("")
+
+    // 生成唯一的会话ID
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    setStreamingSessionId(sessionId)
+    setIsStreamingActive(true)
+
+    try {
+      // 检查API是否可用
+      if (!window.api || !window.api.sendMessage) {
+        addMessage("system", "Electron API not available. Please run the desktop app via Electron: npm start (built) or npm run dev (dev).")
+        setIsStreamingActive(false)
+        return
+      }
+
+      const env: Record<string, string> = {}
+      envText.split(/\n/).forEach((line) => {
+        const m = line.match(/^([^=]+)=(.*)$/)
+        if (m) env[m[1].trim()] = m[2].trim()
+      })
+
+      const options = {
+        command,
+        baseArgs,
+        message: userMessage,
+        cwd,
+        env,
+        sessionId
+      }
+
+      console.log("📤 Sending to IPC:", options)
+      const result = await window.api.sendMessage(options)
+      console.log("📥 Received from IPC:", result)
+
+      // 结果完全通过App.tsx中的流式事件处理，这里不再添加
+    } catch (error) {
+      console.log("💥 Frontend error:", error)
+      addMessage("system", `Failed to send message: ${error}`)
+    } finally {
+      setIsStreamingActive(false)
+    }
   }
 
   return (
@@ -133,8 +203,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({
               <ChatInput
                 inputText={inputText}
                 setInputText={setInputText}
-                onSendMessage={onSendMessage}
-                isLoading={isLoading}
+                onSendMessage={handleSendMessage}
+                isLoading={isLoading || isStreamingActive}
               />
             </Box>
           </Grid>

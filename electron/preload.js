@@ -11,6 +11,16 @@ contextBridge.exposeInMainWorld('api', {
     save: (data) => ipcRenderer.invoke('sessions-save', data),
   },
   
+  // 流式输出API
+  onClaudeStream: (callback) => {
+    ipcRenderer.on('claude-stream', callback)
+    return () => ipcRenderer.removeListener('claude-stream', callback)
+  },
+  
+  offClaudeStream: (callback) => {
+    ipcRenderer.removeListener('claude-stream', callback)
+  },
+  
   // VNC管理API
   vnc: {
     start: () => ipcRenderer.invoke('start-vnc'),
