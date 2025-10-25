@@ -1,11 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Box, Container, Tabs, Tab } from '@mui/material'
+import React, { useEffect, useRef } from 'react'
+import { Box, Grid } from '@mui/material'
 import { ChatMessages } from './components/ChatMessages'
 import { ChatInput } from './components/ChatInput'
 import { SessionSidebar } from './components/SessionSidebar'
 import { Message } from './components/MessageBubble'
 import { useSessionStorage } from '../../hooks/useSessionStorage'
-import { VncTestPanel } from '../../components/VncTestPanel'
+import { VncPanel } from '../../components/VncPanel'
+import { ServiceHealth } from '../../types/api'
 
 interface ChatPageProps {
   command: string
@@ -19,6 +20,17 @@ interface ChatPageProps {
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
   messages: Message[]
+  vncState: {
+    isActive: boolean
+    isLoading: boolean
+    url: string
+    error: string
+    containerId: string
+  }
+  vncHealth: ServiceHealth[]
+  updateVncState: (updates: Partial<typeof vncState>) => void
+  resetVncState: () => void
+  addMessage: (type: "user" | "assistant" | "system", content: string) => void
 }
 
 export const ChatPage: React.FC<ChatPageProps> = ({
@@ -32,10 +44,14 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   isLoading,
   sidebarOpen,
   setSidebarOpen,
-  messages
+  messages,
+  vncState,
+  vncHealth,
+  updateVncState,
+  resetVncState,
+  addMessage
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const [tabValue, setTabValue] = useState(0)
   
   const {
     sessions,
@@ -69,59 +85,80 @@ export const ChatPage: React.FC<ChatPageProps> = ({
         onNewSession={handleNewSession}
       />
       
-      <Container
-        maxWidth="lg"
-        sx={{ 
-          flex: 1, 
-          display: "flex", 
-          flexDirection: "column", 
-          py: 3,
-          ml: sidebarOpen ? '280px' : 'auto',
-          transition: 'margin-left 0.3s ease'
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          height: '100%',
+          ml: sidebarOpen ? '280px' : 0,
+          transition: 'margin-left 0.3s ease',
+          overflow: 'hidden',
+          p: 2,
+          gap: 2
         }}
       >
-        {/* 添加标签切换 */}
-        <Tabs 
-          value={tabValue} 
-          onChange={(_, newValue) => setTabValue(newValue)}
-          sx={{ mb: 2 }}
-        >
-          <Tab label="聊天" />
-          <Tab label="VNC测试" />
-        </Tabs>
-
-        {tabValue === 0 && (
-          <Box
+        <Grid container spacing={2} sx={{ height: '100%' }}>
+          {/* 聊天区域 - 40% */}
+          <Grid
+            item
+            xs={12}
+            md={5}
             sx={{
-              flex: 1,
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              bgcolor: 'white',
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: 'grey.200',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              minHeight: 0
             }}
           >
-            <ChatMessages
-              messages={messages}
-              messagesEndRef={messagesEndRef}
-            />
-            
-            <ChatInput
-              inputText={inputText}
-              setInputText={setInputText}
-              onSendMessage={onSendMessage}
-              isLoading={isLoading}
-            />
-          </Box>
-        )}
+            <Box
+              sx={{
+                flex: 1,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                bgcolor: 'white',
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'grey.200',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+              }}
+            >
+              <ChatMessages
+                messages={messages}
+                messagesEndRef={messagesEndRef}
+              />
+              
+              <ChatInput
+                inputText={inputText}
+                setInputText={setInputText}
+                onSendMessage={onSendMessage}
+                isLoading={isLoading}
+              />
+            </Box>
+          </Grid>
 
-        {tabValue === 1 && (
-          <VncTestPanel />
-        )}
-      </Container>
+          {/* VNC桌面区域 - 60% */}
+          <Grid
+            item
+            xs={12}
+            md={7}
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              minHeight: 0
+            }}
+          >
+            <VncPanel
+              vncState={vncState}
+              vncHealth={vncHealth}
+              updateVncState={updateVncState}
+              resetVncState={resetVncState}
+              addMessage={addMessage}
+            />
+          </Grid>
+        </Grid>
+      </Box>
     </>
   )
 }
