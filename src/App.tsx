@@ -235,7 +235,10 @@ export default function App() {
         }
 
         case "stream-end":
-          if (message.data?.success && message.data.result) {
+          if (message.data?.terminated) {
+            // 用户主动终止的情况
+            addMessage("assistant", message.data.content || "✅ 任务已停止")
+          } else if (message.data?.success && message.data.result) {
             // 如果该会话已收到过 response，则忽略最终 result，避免重复
             if (!currentState.sawResponse) {
               addMessage("assistant", message.data.result)

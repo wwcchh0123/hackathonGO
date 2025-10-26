@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('api', {
   // 现有API
   sendMessage: (options) => ipcRenderer.invoke('send-message', options),
+  terminateSession: (sessionId) => ipcRenderer.invoke('terminate-session', sessionId),
   selectDir: () => ipcRenderer.invoke('select-dir'),
   
   // 会话持久化API（文件存储）
