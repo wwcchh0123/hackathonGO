@@ -92,6 +92,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     interimResults: true
   })
 
+  // 记录上一次的语音状态，用于检测状态变化
+  const prevVoiceStateRef = useRef<typeof voiceState>('idle')
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
@@ -105,14 +108,26 @@ export const ChatPage: React.FC<ChatPageProps> = ({
       setInputText(transcript)
     }
   }, [voiceState, transcript, setInputText])
-
-  // 当识别停止后,清理状态
+  
+  // 当识别停止后,自动发送消息
   useEffect(() => {
-    if (voiceState === 'idle' && transcript) {
-      // 识别已停止,保持最终文本在输入框中
+    // 检测从 listening/processing 变为 idle 的状态转换
+    const wasListening = prevVoiceStateRef.current === 'listening' || prevVoiceStateRef.current === 'processing'
+    const nowIdle = voiceState === 'idle'
+    
+    if (wasListening && nowIdle && inputText.trim()) {
+      // 识别已停止且有文本内容，自动发送消息
+      console.log('🚀 语音识别结束，自动发送消息:', inputText)
       resetTranscript()
+      // 使用 setTimeout 确保状态更新完成后再发送
+      setTimeout(() => {
+        handleSendMessage()
+      }, 100)
     }
-  }, [voiceState, transcript, resetTranscript])
+    
+    // 更新上一次的状态
+    prevVoiceStateRef.current = voiceState
+  }, [voiceState, inputText, resetTranscript, handleSendMessage])
 
   // 流式事件处理现在移到了App.tsx中的父组件
   // 这里只需要处理本地状态
