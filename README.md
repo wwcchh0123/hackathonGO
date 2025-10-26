@@ -16,7 +16,7 @@
 
 ![](./assets/intro.png)
 
-## 更多演示视频
+## 演示视频
 
 - [通过 XGopilot 操作本地电脑,打开地图导航+播放 B 站视频](https://www.bilibili.com/video/BV1oTszz7EuP)
 
@@ -24,7 +24,7 @@
 
 - 架构说明请参考：[架构设计文档](docs/ARCHITECTURE_DETAILED.md)
 
-## 快速开始
+## 如何运行
 
 ### 前置依赖
 
@@ -105,3 +105,27 @@ cp .env.example .env
 npm run dev
 
 ```
+
+## 贡献指南
+
+欢迎提交 Issue 和 Pull Request！在提交 PR 之前,请确保：
+
+1. ✅ 代码遵循项目的编码规范（详见 [CLAUDE.md](CLAUDE.md)）
+2. ✅ 所有测试通过：`npm test`
+3. ✅ 代码覆盖率达到 80% 以上：`npm run test:coverage`
+4. ✅ 提交信息遵循语义化提交规范
+
+详细的开发指南请参考 [CLAUDE.md](CLAUDE.md)。
+
+## 许可证
+
+本项目采用 [MIT 许可证](LICENSE)。
+
+## 联系方式
+
+- 项目维护者: [@wwcchh0123](https://github.com/wwcchh0123)，[@minorcell](https://github.com/minorcell)，[@CarlJi](https://github.com/CarlJi)
+- Issue 反馈: [GitHub Issues](https://github.com/CarlJi/hackathonGO/issues)
+
+---
+
+**用 AI 重新定义人机协作的未来** 🚀
