@@ -11,3 +11,6 @@ coverage
 
 # 环境变量
 .env
+
+# 截图
+.playwright-mcp
