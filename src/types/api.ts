@@ -22,6 +22,12 @@ export interface VncStatus {
   running: boolean
   containerId?: string
   health?: ServiceHealth[]
+  ports?: {
+    vnc: number
+    web: number
+    streamlit?: number
+    tools?: number
+  }
 }
 
 // 扩展Window API类型
@@ -34,6 +40,8 @@ declare global {
         message: string
         cwd?: string
         env?: Record<string, string>
+        sessionId?: string
+        systemPrompt?: string // ← 新增：System Prompt 参数
       }) => Promise<{
         success: boolean
         stdout?: string
@@ -56,6 +64,10 @@ declare global {
         status: () => Promise<VncStatus>
         onContainerStopped: (callback: () => void) => () => void
       }
+
+      // 流式事件监听
+      onClaudeStream?: (callback: (event: any, message: any) => void) => () => void
+      offClaudeStream?: (callback: any) => void
     }
   }
 }

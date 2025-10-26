@@ -8,6 +8,7 @@ import { VncPanel } from '../../components/VncPanel'
 import { ServiceHealth } from '../../types/api'
 import { Session } from '../../types/session'
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
+import { PromptBuilder } from '../../prompts/prompt-builder'
 
 interface ChatPageProps {
   command: string
@@ -126,16 +127,70 @@ export const ChatPage: React.FC<ChatPageProps> = ({
         if (m) env[m[1].trim()] = m[2].trim()
       })
 
+      // ========== System Prompt 集成 ==========
+
+      // 1. 检测 VNC 状态
+      let vncEnabled = false
+      let vncPorts = undefined
+
+      try {
+        if (window.api.vnc?.status) {
+          const vncStatus = await window.api.vnc.status()
+          vncEnabled = vncStatus.running || false
+          vncPorts = vncStatus.ports
+        }
+      } catch (err) {
+        console.warn('⚠️ 无法获取 VNC 状态:', err)
+      }
+
+      // 2. 读取用户自定义 System Prompt
+      const customInstructions = localStorage.getItem('customSystemPrompt') || ''
+
+      // 3. 构建完整的 System Prompt
+      const promptBuilder = new PromptBuilder({
+        vncEnabled,
+        currentDate: new Date().toLocaleDateString('zh-CN', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          weekday: 'long',
+        }),
+        workingDirectory: cwd || undefined,
+        systemArchitecture: navigator.platform,
+        vncPorts,
+        customInstructions,
+        sessionId,
+      })
+
+      // 4. 构建 System Prompt（不拼接用户消息）
+      const systemPrompt = promptBuilder.build()
+
+      // 5. (开发环境) 预览 System Prompt
+      if (process.env.NODE_ENV === 'development') {
+        console.group('📋 System Prompt 预览')
+        const stats = promptBuilder.getStats()
+        console.log('统计信息:', stats)
+        console.log('VNC 状态:', vncEnabled ? '✅ 已启用' : '❌ 未启用')
+        console.log('估算 Tokens:', stats.estimatedTokens)
+        console.groupEnd()
+      }
+
+      // ========== 发送消息 ==========
+
       const options = {
         command,
         baseArgs,
-        message: userMessage,
+        message: userMessage, // ← 只发送用户消息
         cwd,
         env,
-        sessionId
+        sessionId,
+        systemPrompt // ← 单独传递 System Prompt
       }
 
-      console.log("📤 Sending to IPC:", options)
+      console.log("📤 Sending to IPC:", {
+        ...options,
+        systemPrompt: `[${systemPrompt.length} chars, ~${Math.ceil(systemPrompt.length / 4)} tokens]`
+      })
       const result = await window.api.sendMessage(options)
       console.log("📥 Received from IPC:", result)
 
@@ -151,7 +206,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   // 处理语音识别结果
   useEffect(() => {
     console.log('📱 ChatPage - voiceState:', voiceState, 'transcript:', transcript);
-    // 持续更新输入框内容(包括临时结果)
+    // 只在正在监听或处理中时更新输入框
+    // 当状态变为 idle 时，不再更新输入框（此时会由自动发送逻辑处理）
     if ((voiceState === 'listening' || voiceState === 'processing') && transcript) {
       console.log('🎤 更新输入框文本:', transcript)
       setInputText(transcript)
@@ -163,17 +219,18 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     // 检测从 listening/processing 变为 idle 的状态转换
     const wasListening = prevVoiceStateRef.current === 'listening' || prevVoiceStateRef.current === 'processing'
     const nowIdle = voiceState === 'idle'
-    
+
     if (wasListening && nowIdle && inputText.trim()) {
       // 识别已停止且有文本内容，自动发送消息
       console.log('🚀 语音识别结束，自动发送消息:', inputText)
+
+      // 先重置语音识别状态（此时 voiceState 已经是 idle，不会触发输入框更新）
       resetTranscript()
-      // 使用 setTimeout 确保状态更新完成后再发送
-      setTimeout(() => {
-        handleSendMessage()
-      }, 100)
+
+      // 立即调用发送消息（handleSendMessage 内部会清空输入框）
+      handleSendMessage()
     }
-    
+
     // 更新上一次的状态
     prevVoiceStateRef.current = voiceState
   }, [voiceState, inputText, resetTranscript, handleSendMessage])

@@ -351,7 +351,8 @@ ipcMain.handle('send-message', async (_event, options) => {
     cwd,
     env = {},
     timeoutMs = 120000,
-    sessionId = `session_${Date.now()}`
+    sessionId = `session_${Date.now()}`,
+    systemPrompt // ← 新增：System Prompt 参数
   } = options || {}
 
   if (!command || !message) {
@@ -373,12 +374,24 @@ ipcMain.handle('send-message', async (_event, options) => {
 
   return new Promise((resolve) => {
     const mergedEnv = { ...process.env, ...env }
-    const args = [...baseArgs, message]
+
+    // 构建命令行参数
+    const args = [...baseArgs]
+
+    // 如果有 System Prompt，添加 --system-prompt 参数
+    if (systemPrompt && systemPrompt.trim()) {
+      console.log(`📋 Adding system prompt (${systemPrompt.length} chars)`)
+      args.push('--system-prompt', systemPrompt.trim())
+    }
+
+    // 最后添加用户消息
+    args.push(message)
 
     const childProcess = spawn(command, args, {
       cwd: cwd || process.cwd(),
       env: mergedEnv,
-      shell: true,
+      // 移除 shell: true 以避免特殊字符（<>、换行符等）被 shell 误解
+      // Node.js spawn 会自动处理参数转义
       stdio: ['pipe', 'pipe', 'pipe']
     })
 
