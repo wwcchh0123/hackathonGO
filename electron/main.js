@@ -42,7 +42,7 @@ function createWindow() {
       enableRemoteModule: false,
       webSecurity: false, // 仅在开发环境
     },
-    title: 'Agent for Desktop',
+    title: 'XGopilot for Desktop',
     icon: path.join(process.cwd(), 'assets', 'icons', 'icon.png'),
   })
 

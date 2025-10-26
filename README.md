@@ -1,10 +1,10 @@
-# Agent for Desktop (Electron + React)
+# XGopilot for Desktop (Electron + React)
 
-Desktop UI wrapper for Claude Code CLI with MCP support, built using Electron, React, MUI, TypeScript, and Vite.
+Desktop UI wrapper for XGopilot with MCP support, built using Electron, React, MUI, TypeScript, and Vite.
 
 ## 功能特性
 
-- ✅ 运行/停止可配置的 CLI（如 `claude-code`）
+- ✅ 运行/停止可配置的 CLI（如 `XGopilot`）
 - ✅ 实时流式输出 stdout/stderr 到 UI
 - ✅ 向运行中的进程发送 stdin 输入
 - ✅ 通过原生对话框选择工作目录
@@ -55,7 +55,7 @@ npm run dev:electron
 
 ## 使用说明
 
-1. 在 UI 中设置 CLI 命令（如 `claude-code` 或 `npx claude-code`）
+1. 在 UI 中设置 CLI 命令（如 `XGopilot` 或 `npx XGopilot`）
 2. 根据需要添加 `--mcp` 参数
 3. 设置工作目录
 4. 点击运行

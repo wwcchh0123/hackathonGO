@@ -1,8 +1,8 @@
 {
-  "name": "claude-code-desktop",
+  "name": "xgopilot-desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "Electron + React + MUI + TS desktop wrapper for Claude Code CLI",
+  "description": "Electron + React + MUI + TS desktop wrapper for XGopilot",
   "main": "electron/main.js",
   "type": "module",
   "scripts": {

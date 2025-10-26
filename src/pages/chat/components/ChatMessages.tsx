@@ -48,10 +48,10 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
           </Typography>
         </Box>
         <Typography variant="h5" sx={{ mb: 1, fontWeight: 600, color: '#1a1a1a' }}>
-          Welcome to Agent for Desktop
+          Welcome to XGopilot for Desktop
         </Typography>
         <Typography variant="body1" sx={{ color: 'grey.600', maxWidth: 400 }}>
-          Start a conversation with Agent for Desktop to get help with your development tasks. 
+          Start a conversation with XGopilot for Desktop to get help with your development tasks. 
           Ask questions, request code reviews, or get assistance with debugging.
         </Typography>
       </Box>
