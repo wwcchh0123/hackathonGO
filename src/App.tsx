@@ -111,25 +111,25 @@ export default function App() {
     setVncHealth([])
   }, [])
 
-  const addMessage = (
-    type: "user" | "assistant" | "system",
-    content: string
-  ) => {
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      type,
-      content,
-      timestamp: new Date(),
-    }
-    setMessages((prev) => {
-      const updated = [...prev, newMessage]
-      // 如果有活动会话，更新会话消息
-      if (activeSessionId) {
-        updateSessionMessages(activeSessionId, updated)
+  const addMessage = useCallback(
+    (type: "user" | "assistant" | "system", content: string) => {
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        type,
+        content,
+        timestamp: new Date(),
       }
-      return updated
-    })
-  }
+      setMessages((prev) => {
+        const updated = [...prev, newMessage]
+        // 如果有活动会话，更新会话消息
+        if (activeSessionId) {
+          updateSessionMessages(activeSessionId, updated)
+        }
+        return updated
+      })
+    },
+    [activeSessionId, updateSessionMessages]
+  )
 
   // 用于流式更新的消息管理
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
@@ -137,6 +137,19 @@ export default function App() {
   )
   // 记录每个会话的流式状态，用于避免重复渲染
   const sessionStreamStateRef = useRef(new Map<string, { sawResponse: boolean }>)
+  // 维护流式请求ID到聊天会话ID的映射，确保消息保存到正确的会话
+  const requestToChatSessionMap = useRef(new Map<string, string>())
+
+  // 注册流式请求ID与聊天会话ID的映射
+  const registerStreamRequest = useCallback(
+    (requestSessionId: string, chatSessionId: string) => {
+      requestToChatSessionMap.current.set(requestSessionId, chatSessionId)
+      console.log(
+        `📝 注册流式请求映射: ${requestSessionId} → ${chatSessionId}`
+      )
+    },
+    []
+  )
 
   // 当活动会话改变时，加载会话消息
   useEffect(() => {
@@ -199,9 +212,41 @@ export default function App() {
 
     const handleStreamEvent = (_event: any, message: any) => {
       console.log("🎯 收到流式事件:", message)
-      const sid = message.sessionId
+      const requestSessionId = message.sessionId
       const stateMap = sessionStreamStateRef.current
-      const currentState = stateMap.get(sid) || { sawResponse: false }
+      const currentState = stateMap.get(requestSessionId) || {
+        sawResponse: false,
+      }
+
+      // 从映射中获取正确的聊天会话ID
+      const targetChatSessionId =
+        requestToChatSessionMap.current.get(requestSessionId)
+
+      if (!targetChatSessionId) {
+        console.warn(
+          `⚠️ 找不到流式请求 ${requestSessionId} 对应的聊天会话ID，跳过消息保存`
+        )
+        return
+      }
+
+      // 创建一个临时的 addMessage 函数，使用目标聊天会话ID
+      const addMessageToTargetSession = (
+        type: "user" | "assistant" | "system",
+        content: string
+      ) => {
+        const newMessage: Message = {
+          id: Date.now().toString(),
+          type,
+          content,
+          timestamp: new Date(),
+        }
+        setMessages((prev) => {
+          const updated = [...prev, newMessage]
+          // 使用目标聊天会话ID而不是当前的 activeSessionId
+          updateSessionMessages(targetChatSessionId, updated)
+          return updated
+        })
+      }
 
       switch (message.type) {
         case "stream-start":
@@ -217,19 +262,19 @@ export default function App() {
           if (stage === "response") {
             // 标记本会话已经收到过响应内容
             currentState.sawResponse = true
-            sessionStreamStateRef.current.set(sid, currentState)
-            addMessage("assistant", content)
+            sessionStreamStateRef.current.set(requestSessionId, currentState)
+            addMessageToTargetSession("assistant", content)
           } else if (stage === "tool") {
             const toolName = metadata.toolName || "未知工具"
-            addMessage("assistant", `我将调用 ${toolName} 工具`)
+            addMessageToTargetSession("assistant", `我将调用 ${toolName} 工具`)
           } else if (stage === "warning" || stage === "error") {
             const details = rawOutput ? `\n${rawOutput}` : ""
-            addMessage("assistant", `${content}${details}`)
+            addMessageToTargetSession("assistant", `${content}${details}`)
           } else if (stage === "raw") {
             // 原始输出只在 StreamingOutput 面板显示，避免与 response 重复
             // 在聊天气泡中忽略 raw 阶段
           } else {
-            addMessage("assistant", content)
+            addMessageToTargetSession("assistant", content)
           }
           break
         }
@@ -241,31 +286,38 @@ export default function App() {
           } else if (message.data?.success && message.data.result) {
             // 如果该会话已收到过 response，则忽略最终 result，避免重复
             if (!currentState.sawResponse) {
-              addMessage("assistant", message.data.result)
+              addMessageToTargetSession("assistant", message.data.result)
             }
           } else if (message.data?.error) {
-            addMessage("assistant", `❌ 执行失败: ${message.data.error}`)
+            addMessageToTargetSession(
+              "assistant",
+              `❌ 执行失败: ${message.data.error}`
+            )
           }
           setStreamingMessageId(null)
-          // 清理会话状态
-          sessionStreamStateRef.current.delete(sid)
+          // 清理会话状态和映射
+          sessionStreamStateRef.current.delete(requestSessionId)
+          requestToChatSessionMap.current.delete(requestSessionId)
+          console.log(`🧹 清理流式请求映射: ${requestSessionId}`)
           break
 
         case "stream-error":
-          addMessage(
+          addMessageToTargetSession(
             "assistant",
             `❌ 执行错误: ${message.data?.content || "未知错误"}`
           )
           setStreamingMessageId(null)
-          // 清理会话状态
-          sessionStreamStateRef.current.delete(sid)
+          // 清理会话状态和映射
+          sessionStreamStateRef.current.delete(requestSessionId)
+          requestToChatSessionMap.current.delete(requestSessionId)
+          console.log(`🧹 清理流式请求映射: ${requestSessionId}`)
           break
       }
     }
 
     const unsubscribe = api.onClaudeStream(handleStreamEvent)
     return unsubscribe
-  }, [streamingMessageId])
+  }, [streamingMessageId, updateSessionMessages])
 
   // restore persisted config
   useEffect(() => {
@@ -377,6 +429,7 @@ export default function App() {
           activeSessionId={activeSessionId}
           onNewSession={createNewSession}
           onSessionSelect={selectSession}
+          registerStreamRequest={registerStreamRequest}
         />
       </Box>
     </ThemeProvider>

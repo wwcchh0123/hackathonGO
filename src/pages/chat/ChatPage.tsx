@@ -10,6 +10,14 @@ import { Session } from '../../types/session'
 import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
 import { PromptBuilder } from '../../prompts/prompt-builder'
 
+interface VncState {
+  isActive: boolean
+  isLoading: boolean
+  url: string
+  error: string
+  containerId: string
+}
+
 interface ChatPageProps {
   command: string
   baseArgs: string[]
@@ -21,15 +29,9 @@ interface ChatPageProps {
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
   messages: Message[]
-  vncState: {
-    isActive: boolean
-    isLoading: boolean
-    url: string
-    error: string
-    containerId: string
-  }
+  vncState: VncState
   vncHealth: ServiceHealth[]
-  updateVncState: (updates: Partial<ChatPageProps['vncState']>) => void
+  updateVncState: (updates: Partial<VncState>) => void
   resetVncState: () => void
   addMessage: (type: "user" | "assistant" | "system", content: string) => void
   // 会话相关（由App统一管理）
@@ -37,6 +39,7 @@ interface ChatPageProps {
   activeSessionId: string | null
   onNewSession: () => void
   onSessionSelect: (sessionId: string) => void
+  registerStreamRequest: (requestSessionId: string, chatSessionId: string) => void
 }
 
 export const ChatPage: React.FC<ChatPageProps> = ({
@@ -58,7 +61,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   sessions,
   activeSessionId,
   onNewSession,
-  onSessionSelect
+  onSessionSelect,
+  registerStreamRequest
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [streamingSessionId, setStreamingSessionId] = useState<string | null>(null)
@@ -108,10 +112,17 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     addMessage("user", userMessage)
     setInputText("")
 
-    // 生成唯一的会话ID
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    setStreamingSessionId(sessionId)
+    // 生成唯一的流式请求ID
+    const requestSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    setStreamingSessionId(requestSessionId)
     setIsStreamingActive(true)
+
+    // 注册流式请求ID与当前聊天会话ID的映射
+    if (activeSessionId) {
+      registerStreamRequest(requestSessionId, activeSessionId)
+    } else {
+      console.warn("⚠️ 发送消息时没有活动会话，消息可能无法保存")
+    }
 
     try {
       // 检查API是否可用
@@ -174,7 +185,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
         systemArchitecture: navigator.platform,
         vncPorts,
         customInstructions,
-        sessionId,
+        sessionId: requestSessionId,
       })
 
       // 4. 构建 System Prompt（不拼接用户消息）
@@ -200,7 +211,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
         message: userMessage, // ← 只发送用户消息
         cwd,
         env,
-        sessionId,
+        sessionId: requestSessionId,
         systemPrompt // ← 单独传递 System Prompt
       }
 
@@ -218,7 +229,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     } finally {
       setIsStreamingActive(false)
     }
-  }, [inputText, isLoading, isStreamingActive, addMessage, setInputText, command, baseArgs, cwd, envText])
+  }, [inputText, isLoading, isStreamingActive, addMessage, setInputText, command, baseArgs, cwd, envText, activeSessionId, registerStreamRequest])
 
   // 终止任务处理函数
   const handleStopTask = React.useCallback(async () => {
