@@ -350,7 +350,6 @@ ipcMain.handle('send-message', async (_event, options) => {
     message,
     cwd,
     env = {},
-    timeoutMs = 120000,
     sessionId = `session_${Date.now()}`,
     systemPrompt // ← 新增：System Prompt 参数
   } = options || {}
@@ -435,43 +434,12 @@ ipcMain.handle('send-message', async (_event, options) => {
       })
     })
 
-    // 超时控制
-    const timeout = setTimeout(() => {
-      if (isResolved) return
-      isResolved = true
-      console.log(`⏱️ Process timeout after ${timeoutMs}ms, killing process`)
-
-      sendStreamUpdate(sessionId, {
-        type: 'stream-error',
-        data: {
-          stage: 'timeout',
-          content: `⏰ 执行超时 (${timeoutMs / 1000}s)`,
-          error: `Timeout after ${timeoutMs}ms`
-        }
-      })
-
-      try {
-        childProcess.kill('SIGKILL')
-      } catch (e) {
-        console.log('⚠️ Failed to kill process on timeout:', e)
-      }
-
-      const result = {
-        success: false,
-        stdout: stdout.trim(),
-        stderr: stderr.trim(),
-        exitCode: null,
-        error: `Timeout after ${timeoutMs}ms`
-      }
-      console.log('📋 Timeout result:', JSON.stringify(result, null, 2))
-      resolve(result)
-    }, timeoutMs)
 
     // 进程结束处理
     childProcess.on('close', (code) => {
       if (isResolved) return
       isResolved = true
-      clearTimeout(timeout)
+      // 进程自然结束，无需清除超时
 
       console.log('✅ Process finished with exit code:', code)
 
@@ -500,7 +468,7 @@ ipcMain.handle('send-message', async (_event, options) => {
     childProcess.on('error', (err) => {
       if (isResolved) return
       isResolved = true
-      clearTimeout(timeout)
+      // 进程错误，无需清除超时
 
       console.log('💥 Process error:', err)
 
