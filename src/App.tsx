@@ -64,7 +64,7 @@ export default function App() {
     "stream-json",
     "-p",
     "--dangerously-skip-permissions",
-    "--verbose"
+    "--verbose",
   ])
   const [cwd, setCwd] = useState("")
   const [envText, setEnvText] = useState("")
@@ -78,9 +78,9 @@ export default function App() {
   const [vncState, setVncState] = useState({
     isActive: false,
     isLoading: false,
-    url: '',
-    error: '',
-    containerId: ''
+    url: "",
+    error: "",
+    containerId: "",
   })
 
   // VNC服务健康状态
@@ -92,21 +92,21 @@ export default function App() {
     getActiveSession,
     createNewSession,
     updateSessionMessages,
-    selectSession
+    selectSession,
   } = useSessionStorage()
 
   // 自定义VNC状态管理Hook
   const updateVncState = useCallback((updates: Partial<typeof vncState>) => {
-    setVncState(prev => ({ ...prev, ...updates }))
+    setVncState((prev) => ({ ...prev, ...updates }))
   }, [])
-  
+
   const resetVncState = useCallback(() => {
     setVncState({
       isActive: false,
       isLoading: false,
-      url: '',
-      error: '',
-      containerId: ''
+      url: "",
+      error: "",
+      containerId: "",
     })
     setVncHealth([])
   }, [])
@@ -132,43 +132,9 @@ export default function App() {
   }
 
   // 用于流式更新的消息管理
-  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
-
-  const updateStreamingMessage = (content: string, replace: boolean = false) => {
-    if (!streamingMessageId) return
-    
-    setMessages((prev) => {
-      const updated = prev.map(msg => 
-        msg.id === streamingMessageId 
-          ? { ...msg, content: replace ? content : msg.content + "\n" + content }
-          : msg
-      )
-      // 如果有活动会话，更新会话消息
-      if (activeSessionId) {
-        updateSessionMessages(activeSessionId, updated)
-      }
-      return updated
-    })
-  }
-
-  const startStreamingMessage = () => {
-    const messageId = Date.now().toString()
-    const newMessage: Message = {
-      id: messageId,
-      type: "assistant",
-      content: "",
-      timestamp: new Date(),
-    }
-    setStreamingMessageId(messageId)
-    setMessages((prev) => {
-      const updated = [...prev, newMessage]
-      if (activeSessionId) {
-        updateSessionMessages(activeSessionId, updated)
-      }
-      return updated
-    })
-    return messageId
-  }
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
+    null
+  )
 
   // 当活动会话改变时，加载会话消息
   useEffect(() => {
@@ -187,39 +153,39 @@ export default function App() {
     if (!window.api?.vnc) return
 
     const unsubscribe = window.api.vnc.onContainerStopped(() => {
-      console.log('VNC容器已停止')
+      console.log("VNC容器已停止")
       updateVncState({
         isActive: false,
-        error: '容器意外停止'
+        error: "容器意外停止",
       })
       setVncHealth([])
       addMessage("system", "VNC容器已停止")
     })
-    
+
     return unsubscribe
   }, [updateVncState])
 
   // 定期检查VNC状态
   useEffect(() => {
     if (!vncState.isActive || !window.api?.vnc) return
-    
+
     const checkStatus = async () => {
       try {
         const status = await window.api.vnc.status()
         if (!status.running) {
           updateVncState({
             isActive: false,
-            error: '容器已停止'
+            error: "容器已停止",
           })
           setVncHealth([])
         } else if (status.health) {
           setVncHealth(status.health)
         }
       } catch (error) {
-        console.error('检查VNC状态失败:', error)
+        console.error("检查VNC状态失败:", error)
       }
     }
-    
+
     const interval = setInterval(checkStatus, 10000)
     return () => clearInterval(interval)
   }, [vncState.isActive, updateVncState])
@@ -230,30 +196,49 @@ export default function App() {
     if (!api?.onClaudeStream) return
 
     const handleStreamEvent = (_event: any, message: any) => {
-      console.log('🎯 收到流式事件:', message)
+      console.log("🎯 收到流式事件:", message)
 
       switch (message.type) {
-        case 'stream-start':
-          startStreamingMessage()
+        case "stream-start":
           break
-          
-        case 'stream-data':
-          if (message.data?.content) {
-            updateStreamingMessage(message.data.content)
+
+        case "stream-data": {
+          const stage = message.data?.stage
+          const content = message.data?.content || ""
+          const rawOutput = message.data?.rawOutput
+          const metadata = message.data?.metadata || {}
+
+          // 按事件阶段拆分为独立气泡
+          if (stage === "response") {
+            addMessage("assistant", content)
+          } else if (stage === "tool") {
+            const toolName = metadata.toolName || "未知工具"
+            addMessage("assistant", `我将调用 ${toolName} 工具`)
+          } else if (stage === "warning" || stage === "error") {
+            const details = rawOutput ? `\n${rawOutput}` : ""
+            addMessage("assistant", `${content}${details}`)
+          } else if (stage === "raw") {
+            addMessage("assistant", content)
+          } else {
+            addMessage("assistant", content)
           }
           break
-          
-        case 'stream-end':
+        }
+
+        case "stream-end":
           if (message.data?.success && message.data.result) {
-            updateStreamingMessage(`\n\n${message.data.result}`) // 追加最终结果
+            addMessage("assistant", message.data.result)
           } else if (message.data?.error) {
-            updateStreamingMessage(`\n\n❌ 执行失败: ${message.data.error}`)
+            addMessage("assistant", `❌ 执行失败: ${message.data.error}`)
           }
           setStreamingMessageId(null)
           break
-          
-        case 'stream-error':
-          updateStreamingMessage(`❌ 执行错误: ${message.data?.content || '未知错误'}`, true)
+
+        case "stream-error":
+          addMessage(
+            "assistant",
+            `❌ 执行错误: ${message.data?.content || "未知错误"}`
+          )
           setStreamingMessageId(null)
           break
       }
@@ -272,8 +257,17 @@ export default function App() {
         setCommand(cfg.command || "claude")
         // 确保包含stream-json格式参数
         const savedArgs = cfg.baseArgs || []
-        if (!savedArgs.includes("--output-format") || !savedArgs.includes("stream-json")) {
-          setBaseArgs(["--output-format", "stream-json", "-p", "--dangerously-skip-permissions", "--verbose"])
+        if (
+          !savedArgs.includes("--output-format") ||
+          !savedArgs.includes("stream-json")
+        ) {
+          setBaseArgs([
+            "--output-format",
+            "stream-json",
+            "-p",
+            "--dangerously-skip-permissions",
+            "--verbose",
+          ])
         } else {
           setBaseArgs(savedArgs)
         }
@@ -288,7 +282,6 @@ export default function App() {
     const cfg = { command, baseArgs, cwd, envText }
     localStorage.setItem("config", JSON.stringify(cfg))
   }, [command, baseArgs, cwd, envText])
-
 
   const handlePickCwd = async () => {
     if (!window.api || !window.api.selectDir) {

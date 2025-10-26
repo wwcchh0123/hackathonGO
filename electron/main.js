@@ -191,66 +191,59 @@ class ClaudeJsonStreamProcessor {
         this.handleAssistantMessage(data)
         break
 
-      case 'user':
-        this.handleUserMessage(data)
-        break
-
       case 'result':
         this.handleResultMessage(data)
         break
 
-      default:
-        this.sendGenericMessage(data)
     }
   }
 
   handleSystemMessage(data) {
-    // 不显示系统初始化消息，只用于内部状态跟踪
-    // 让用户看到更清爽的执行过程
+    // 静默处理系统消息，不显示在界面上
+    // 系统初始化信息对用户来说不重要，只需内部使用
+    console.log('📋 System message received:', data.subtype)
   }
 
   handleAssistantMessage(data) {
     const message = data.message
     if (!message) return
 
-    // 只处理工具调用，显示进度状态
+    // 处理消息内容
     if (message.content && Array.isArray(message.content)) {
       for (const content of message.content) {
-        if (content.type === 'tool_use') {
+        // 显示文本消息
+        if (content.type === 'text' && content.text) {
           sendStreamUpdate(this.sessionId, {
             type: 'stream-data',
             data: {
-              stage: 'tool',
-              content: `🔧 正在调用工具: ${content.name}`,
+              stage: 'response',
+              content: `${content.text}`,
               metadata: {
-                toolName: content.name,
-                toolId: content.id
+                messageId: message.id,
+                model: message.model
               }
             }
           })
         }
-        // 文本内容不在中间过程显示，只在最终result显示
-      }
-    }
-  }
 
-  handleUserMessage(data) {
-    // 处理工具执行结果，只显示状态不显示详细内容
-    if (data.message?.content?.[0]?.type === 'tool_result') {
-      const toolResult = data.message.content[0]
-      const isError = toolResult.is_error
-
-      sendStreamUpdate(this.sessionId, {
-        type: 'stream-data',
-        data: {
-          stage: isError ? 'error' : 'tool-result',
-          content: `${isError ? '❌' : '✅'} 工具执行${isError ? '失败' : '完成'}`,
-          metadata: {
-            toolUseId: toolResult.tool_use_id,
-            isError
-          }
+        // 显示工具调用详情
+        if (content.type === 'tool_use') {
+          const toolInput = JSON.stringify(content.input, null, 2)
+          sendStreamUpdate(this.sessionId, {
+            type: 'stream-data',
+            data: {
+              stage: 'tool',
+              content: `🔧 调用工具: ${content.name}`,
+              rawOutput: `参数:\n${toolInput}`,
+              metadata: {
+                toolName: content.name,
+                toolId: content.id,
+                input: content.input
+              }
+            }
+          })
         }
-      })
+      }
     }
   }
 
@@ -301,23 +294,12 @@ class ClaudeJsonStreamProcessor {
     }
   }
 
-  sendGenericMessage(data, icon = '📍', stage = 'info') {
-    sendStreamUpdate(this.sessionId, {
-      type: 'stream-data',
-      data: {
-        stage,
-        content: `${icon} ${data.type || 'Message'} #${this.messageCount}`,
-        rawOutput: JSON.stringify(data, null, 2)
-      }
-    })
-  }
-
   sendRawOutput(line) {
     sendStreamUpdate(this.sessionId, {
       type: 'stream-data',
       data: {
         stage: 'raw',
-        content: `💬 ${line}`,
+        content: `${line}`,
         rawOutput: line
       }
     })
