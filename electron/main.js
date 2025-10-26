@@ -1,11 +1,10 @@
-import { app, BrowserWindow, ipcMain, dialog, nativeImage, session } from 'electron'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { spawn } from 'node:child_process'
-import { promisify } from 'node:util'
-import { exec } from 'node:child_process'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, session } from 'electron'
+import { exec, spawn } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
 
 const execAsync = promisify(exec)
 
@@ -50,7 +49,7 @@ function createWindow() {
     console.log('Loading dev URL:', devUrl)
     mainWindow.loadURL(devUrl)
     // 开发模式下打开开发者工具
-    // mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools()
   } else {
     const indexPath = path.join(process.cwd(), 'dist', 'index.html')
     mainWindow.loadFile(indexPath)
@@ -682,28 +681,35 @@ async function stopVncContainer() {
 
 // VNC状态检查
 ipcMain.handle('vnc-status', async (event) => {
+  console.log('🔍 [主进程] 检查VNC状态, vncContainerId:', vncContainerId)
+
   if (!vncContainerId) {
+    console.log('❌ [主进程] vncContainerId 为空，返回 running: false')
     return { running: false }
   }
 
   try {
     const { stdout } = await execAsync(`docker ps -q -f id=${vncContainerId}`)
     const isRunning = stdout.trim().length > 0
+    console.log('🐳 [主进程] docker ps 结果:', { stdout: stdout.trim(), isRunning })
 
     if (isRunning) {
       // 检查服务健康状态
       const healthStatus = await checkServiceHealth()
+      console.log('✅ [主进程] 容器运行中，返回 running: true')
       return {
         running: true,
         containerId: vncContainerId,
-        health: healthStatus
+        health: healthStatus,
+        ports: VNC_PORTS
       }
     } else {
+      console.log('⚠️ [主进程] 容器已停止，清空 vncContainerId')
       vncContainerId = null
       return { running: false }
     }
   } catch (error) {
-    console.error('检查VNC状态失败:', error)
+    console.error('❌ [主进程] 检查VNC状态失败:', error)
     vncContainerId = null
     return { running: false }
   }
