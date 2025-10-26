@@ -4,6 +4,10 @@ dist
 out
 *.log
 
+# Electron 打包输出
+release
+*.iconset
+
 # 测试覆盖率
 coverage
 *.lcov
@@ -11,3 +15,5 @@ coverage
 
 # 环境变量
 .env
+
+pnpm-lock.yaml

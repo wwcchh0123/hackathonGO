@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Electron + React + MUI + TS desktop wrapper for Claude Code CLI",
+  "author": "Your Name <your.email@example.com>",
   "main": "electron/main.js",
   "type": "module",
   "scripts": {
@@ -11,11 +12,90 @@
     "dev": "concurrently -k \"npm:dev:web\" \"npm:dev:electron\"",
     "build:web": "vite build",
     "build": "npm run build:web",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux",
     "icons": "electron scripts/generate-icons.cjs",
+    "icons:platform": "node scripts/generate-platform-icons.cjs",
+    "icons:all": "npm run icons && npm run icons:platform",
     "start": "electron .",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
+  },
+  "build": {
+    "appId": "com.qiniu.claude-code-desktop",
+    "productName": "Agent for Desktop",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "assets/icons/icon.icns",
+      "darkModeSupport": true,
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ],
+      "icon": "assets/icons/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "category": "Development",
+      "icon": "assets/icons/"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",
@@ -24,7 +104,6 @@
     "@mui/material": "^7.3.4",
     "@types/react-router-dom": "^5.3.3",
     "crypto-js": "^4.2.0",
-    "electron": "^30.5.1",
     "highlight.js": "^11.11.1",
     "js-base64": "^3.7.8",
     "react": "^18.2.0",
@@ -45,6 +124,8 @@
     "@types/react-dom": "^18.2.11",
     "@vitejs/plugin-react": "^4.2.0",
     "concurrently": "^8.2.2",
+    "electron-builder": "^26.0.12",
+    "electron": "^30.5.1",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
