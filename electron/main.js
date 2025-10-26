@@ -16,6 +16,9 @@ const __filename = fileURLToPath(import.meta.url)
 let vncContainerId = null
 let vncStartupPromise = null
 
+// 全局任务进程管理
+const runningProcesses = new Map() // sessionId -> { process, startTime }
+
 // VNC Docker 镜像配置 - 从环境变量读取，支持自定义镜像
 const VNC_DOCKER_IMAGE = process.env.VNC_DOCKER_IMAGE || 'aslan-spock-register.qiniu.io/devops/anthropic-quickstarts:computer-use-demo-latest'
 
@@ -375,6 +378,12 @@ ipcMain.handle('send-message', async (_event, options) => {
       stdio: ['pipe', 'pipe', 'pipe']
     })
 
+    // 将进程添加到管理Map中
+    runningProcesses.set(sessionId, {
+      process: childProcess,
+      startTime: Date.now()
+    })
+
     let stdout = ''
     let stderr = ''
     let isResolved = false
@@ -417,29 +426,50 @@ ipcMain.handle('send-message', async (_event, options) => {
 
 
     // 进程结束处理
-    childProcess.on('close', (code) => {
+    childProcess.on('close', (code, signal) => {
       if (isResolved) return
       isResolved = true
-      // 进程自然结束，无需清除超时
+      
+      // 从管理Map中移除进程
+      runningProcesses.delete(sessionId)
 
-      console.log('✅ Process finished with exit code:', code)
+      console.log(`✅ Process finished with exit code: ${code}, signal: ${signal}`)
+
+      // 根据信号判断是否为用户终止
+      const wasTerminated = signal === 'SIGTERM' || signal === 'SIGKILL'
+      let stage, content
+      
+      if (wasTerminated) {
+        stage = 'terminated'
+        content = '⏹️ 任务已被用户停止'
+      } else if (code === 0) {
+        stage = 'completed'
+        content = '🎉 Claude Code 执行完成！'
+      } else {
+        stage = 'failed'
+        content = '❌ Claude Code 执行失败'
+      }
 
       // 发送完成信号
       sendStreamUpdate(sessionId, {
         type: 'stream-end',
         data: {
-          stage: code === 0 ? 'completed' : 'failed',
-          content: code === 0 ? '🎉 Claude Code 执行完成！' : '❌ Claude Code 执行失败',
+          stage,
+          content,
           exitCode: code,
-          success: code === 0
+          signal,
+          success: code === 0 && !wasTerminated,
+          terminated: wasTerminated
         }
       })
 
       const result = {
-        success: code === 0,
+        success: code === 0 && !wasTerminated,
         stdout: stdout.trim(),
         stderr: stderr.trim(),
-        exitCode: code
+        exitCode: code,
+        signal,
+        terminated: wasTerminated
       }
       console.log('📋 Final result:', JSON.stringify(result, null, 2))
       resolve(result)
@@ -449,7 +479,9 @@ ipcMain.handle('send-message', async (_event, options) => {
     childProcess.on('error', (err) => {
       if (isResolved) return
       isResolved = true
-      // 进程错误，无需清除超时
+      
+      // 从管理Map中移除进程
+      runningProcesses.delete(sessionId)
 
       console.log('💥 Process error:', err)
 
@@ -470,6 +502,87 @@ ipcMain.handle('send-message', async (_event, options) => {
       resolve(result)
     })
   })
+})
+
+// 终止会话处理器
+ipcMain.handle('terminate-session', async (_event, sessionId) => {
+  console.log('=== IPC terminate-session received ===')
+  console.log('SessionId:', sessionId)
+
+  if (!sessionId) {
+    console.log('❌ Missing sessionId')
+    return { success: false, error: 'SessionId is required' }
+  }
+
+  const processInfo = runningProcesses.get(sessionId)
+  if (!processInfo) {
+    console.log('❌ No running process found for sessionId:', sessionId)
+    return { success: false, error: 'No running process found for this session' }
+  }
+
+  const { process: childProcess, startTime } = processInfo
+  const duration = Date.now() - startTime
+
+  try {
+    console.log(`🛑 Terminating process for session ${sessionId} (running for ${duration}ms)`)
+    
+    // 发送终止通知
+    sendStreamUpdate(sessionId, {
+      type: 'stream-data',
+      data: {
+        stage: 'terminating',
+        content: '🛑 正在停止任务...',
+        metadata: { duration }
+      }
+    })
+
+    // 优雅终止：先发送 SIGTERM
+    childProcess.kill('SIGTERM')
+    
+    // 设置强制终止的超时机制（5秒后强制 SIGKILL）
+    const forceKillTimeout = setTimeout(() => {
+      if (runningProcesses.has(sessionId)) {
+        console.log(`💥 Force killing process for session ${sessionId}`)
+        childProcess.kill('SIGKILL')
+      }
+    }, 5000)
+
+    // 进程结束时清除超时并发送终止完成消息
+    childProcess.on('exit', (code, signal) => {
+      clearTimeout(forceKillTimeout)
+      
+      // 发送终止完成消息
+      sendStreamUpdate(sessionId, {
+        type: 'stream-end',
+        data: {
+          stage: 'terminated',
+          content: '✅ 任务已停止',
+          success: true,
+          terminated: true,
+          exitCode: code,
+          signal: signal,
+          metadata: { 
+            duration,
+            terminatedByUser: true
+          }
+        }
+      })
+      
+      console.log(`✅ Process for session ${sessionId} terminated (code: ${code}, signal: ${signal})`)
+    })
+
+    return { 
+      success: true, 
+      message: 'Termination signal sent',
+      duration 
+    }
+  } catch (error) {
+    console.error('❌ Failed to terminate process:', error)
+    return { 
+      success: false, 
+      error: String(error) 
+    }
+  }
 })
 
 ipcMain.handle('select-dir', async () => {

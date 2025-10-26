@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Paper, TextField, IconButton, Tooltip, Box, Typography, Switch, FormControlLabel } from '@mui/material';
-import { Send as SendIcon, Mic as MicIcon, MicOff as MicOffIcon } from '@mui/icons-material';
+import { Send as SendIcon, Mic as MicIcon, MicOff as MicOffIcon, Stop as StopIcon } from '@mui/icons-material';
 
 interface ChatInputProps {
   inputText: string;
@@ -16,6 +16,9 @@ interface ChatInputProps {
   // 虚拟电脑开关
   showVnc?: boolean;
   onToggleVnc?: () => void;
+  // 任务终止相关
+  isStreamingActive?: boolean;
+  onStopTask?: () => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -30,6 +33,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isVoiceSupported = false,
   showVnc,
   onToggleVnc,
+  isStreamingActive = false,
+  onStopTask,
 }) => {
   // 当有语音错误时显示提示
   useEffect(() => {
@@ -181,24 +186,26 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </Tooltip>
         )}
 
-        {/* 发送按钮 */}
-        <Tooltip title="发送消息 (Enter)">
+        {/* 发送/停止按钮 */}
+        <Tooltip title={isStreamingActive ? "停止任务" : "发送消息 (Enter)"}>
           <IconButton
-            onClick={onSendMessage}
-            disabled={!inputText.trim() || isLoading || isListening}
+            onClick={isStreamingActive ? onStopTask : onSendMessage}
+            disabled={isStreamingActive ? false : (!inputText.trim() || isLoading || isListening)}
             sx={{
-              bgcolor: '#CC785C',
+              bgcolor: isStreamingActive ? 'error.main' : '#CC785C',
               color: 'white',
               width: 40,
               height: 40,
-              '&:hover': { bgcolor: '#B5694A' },
+              '&:hover': { 
+                bgcolor: isStreamingActive ? 'error.dark' : '#B5694A' 
+              },
               '&:disabled': {
                 bgcolor: 'grey.300',
                 color: 'grey.500'
               }
             }}
           >
-            <SendIcon fontSize="small" />
+            {isStreamingActive ? <StopIcon fontSize="small" /> : <SendIcon fontSize="small" />}
           </IconButton>
         </Tooltip>
       </Box>

@@ -29,7 +29,7 @@ interface ChatPageProps {
     containerId: string
   }
   vncHealth: ServiceHealth[]
-  updateVncState: (updates: Partial<typeof vncState>) => void
+  updateVncState: (updates: Partial<ChatPageProps['vncState']>) => void
   resetVncState: () => void
   addMessage: (type: "user" | "assistant" | "system", content: string) => void
   // 会话相关（由App统一管理）
@@ -220,6 +220,43 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     }
   }, [inputText, isLoading, isStreamingActive, addMessage, setInputText, command, baseArgs, cwd, envText])
 
+  // 终止任务处理函数
+  const handleStopTask = React.useCallback(async () => {
+    if (!isStreamingActive || !streamingSessionId) {
+      console.log('❌ No active streaming session to terminate')
+      return
+    }
+
+    try {
+      console.log('🛑 Stopping task for session:', streamingSessionId)
+      
+      // 检查API是否可用
+      if (!window.api || !window.api.terminateSession) {
+        addMessage("system", "终止功能不可用，请确保在 Electron 应用中运行")
+        return
+      }
+
+      const result = await window.api.terminateSession(streamingSessionId)
+      console.log('📋 Terminate result:', result)
+
+      if (result.success) {
+        // 成功终止的反馈会通过流式事件自动处理
+        console.log('✅ Termination signal sent successfully')
+      } else {
+        addMessage("system", `停止任务失败: ${result.error}`)
+        // 如果终止失败，重置流式状态
+        setIsStreamingActive(false)
+        setStreamingSessionId(null)
+      }
+    } catch (error) {
+      console.error('💥 Failed to stop task:', error)
+      addMessage("system", `停止任务时发生错误: ${error}`)
+      // 发生错误时重置流式状态
+      setIsStreamingActive(false)
+      setStreamingSessionId(null)
+    }
+  }, [isStreamingActive, streamingSessionId, addMessage])
+
   // 处理语音识别结果
   useEffect(() => {
     console.log('📱 ChatPage - voiceState:', voiceState, 'transcript:', transcript);
@@ -391,6 +428,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({
               isVoiceSupported={isVoiceSupported}
               showVnc={showVnc}
               onToggleVnc={handleToggleVnc}
+              isStreamingActive={isStreamingActive}
+              onStopTask={handleStopTask}
             />
           </Box>
         </Box>
