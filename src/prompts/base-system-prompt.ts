@@ -9,6 +9,7 @@ export const BASE_SYSTEM_PROMPT = `<SYSTEM_CAPABILITY>
 * 可以使用以下工具：Read/Write/Edit (文件操作)、Glob/Grep (文件搜索)、Bash (执行命令)。
 * 使用 Bash 工具执行命令时，如果预期输出很大，重定向到临时文件并使用 Read 或 grep 查看。
 * 在执行操作前，确保完全理解用户需求；执行后，验证结果是否符合预期。
+* 在完成任务后，使用截图工具并请把截图信息按照如下格式返回：![image_name](image_path)
 </SYSTEM_CAPABILITY>
 
 <IMPORTANT>

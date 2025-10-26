@@ -8,7 +8,8 @@
       "Bash(npm run test:coverage:*)",
       "Bash(npx electron:*)",
       "Bash(sips:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
