@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
 import { Box, CssBaseline } from "@mui/material"
 import { AppHeader } from "./components/shared"
@@ -135,6 +135,8 @@ export default function App() {
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
   )
+  // 记录每个会话的流式状态，用于避免重复渲染
+  const sessionStreamStateRef = useRef(new Map<string, { sawResponse: boolean }>)
 
   // 当活动会话改变时，加载会话消息
   useEffect(() => {
@@ -197,6 +199,9 @@ export default function App() {
 
     const handleStreamEvent = (_event: any, message: any) => {
       console.log("🎯 收到流式事件:", message)
+      const sid = message.sessionId
+      const stateMap = sessionStreamStateRef.current
+      const currentState = stateMap.get(sid) || { sawResponse: false }
 
       switch (message.type) {
         case "stream-start":
@@ -210,6 +215,9 @@ export default function App() {
 
           // 按事件阶段拆分为独立气泡
           if (stage === "response") {
+            // 标记本会话已经收到过响应内容
+            currentState.sawResponse = true
+            sessionStreamStateRef.current.set(sid, currentState)
             addMessage("assistant", content)
           } else if (stage === "tool") {
             const toolName = metadata.toolName || "未知工具"
@@ -218,7 +226,8 @@ export default function App() {
             const details = rawOutput ? `\n${rawOutput}` : ""
             addMessage("assistant", `${content}${details}`)
           } else if (stage === "raw") {
-            addMessage("assistant", content)
+            // 原始输出只在 StreamingOutput 面板显示，避免与 response 重复
+            // 在聊天气泡中忽略 raw 阶段
           } else {
             addMessage("assistant", content)
           }
@@ -227,11 +236,16 @@ export default function App() {
 
         case "stream-end":
           if (message.data?.success && message.data.result) {
-            addMessage("assistant", message.data.result)
+            // 如果该会话已收到过 response，则忽略最终 result，避免重复
+            if (!currentState.sawResponse) {
+              addMessage("assistant", message.data.result)
+            }
           } else if (message.data?.error) {
             addMessage("assistant", `❌ 执行失败: ${message.data.error}`)
           }
           setStreamingMessageId(null)
+          // 清理会话状态
+          sessionStreamStateRef.current.delete(sid)
           break
 
         case "stream-error":
@@ -240,6 +254,8 @@ export default function App() {
             `❌ 执行错误: ${message.data?.content || "未知错误"}`
           )
           setStreamingMessageId(null)
+          // 清理会话状态
+          sessionStreamStateRef.current.delete(sid)
           break
       }
     }
