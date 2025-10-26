@@ -386,6 +386,77 @@ print(json.dumps(result))`;
     return JSON.parse(stdout.trim());
   }
 
+  // 键盘按键操作
+  async pressKey(text) {
+    this.log(`⌨️ Pressing key: ${text}`);
+    
+    if (!this.vncContainerId) {
+      await this.findVncContainer();
+      if (!this.vncContainerId) {
+        throw new Error('VNC容器未运行');
+      }
+    }
+
+    const pythonScript = `import asyncio
+import sys
+import json
+sys.path.append('/home/computeruse/computer_use_demo')
+from tools.computer import ComputerTool20241022
+
+async def press_key():
+    tool = ComputerTool20241022()
+    result = await tool(action='key', text='${text}')
+    return {'success': True, 'result': str(result)}
+
+result = asyncio.run(press_key())
+print(json.dumps(result))`;
+
+    const scriptBase64 = Buffer.from(pythonScript).toString('base64');
+    const writeCommand = `docker exec ${this.vncContainerId} sh -c 'echo "${scriptBase64}" | base64 -d > /tmp/press_key.py'`;
+    await this.execCommand(writeCommand);
+    
+    const execCommand = `docker exec ${this.vncContainerId} python3 /tmp/press_key.py`;
+    const { stdout } = await this.execCommand(execCommand);
+    return JSON.parse(stdout.trim());
+  }
+
+  // 文本输入操作
+  async typeText(text) {
+    this.log(`⌨️ Typing text: ${text}`);
+    
+    if (!this.vncContainerId) {
+      await this.findVncContainer();
+      if (!this.vncContainerId) {
+        throw new Error('VNC容器未运行');
+      }
+    }
+
+    // 转义特殊字符，避免在Python字符串中出现问题
+    const escapedText = text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+
+    const pythonScript = `import asyncio
+import sys
+import json
+sys.path.append('/home/computeruse/computer_use_demo')
+from tools.computer import ComputerTool20241022
+
+async def type_text():
+    tool = ComputerTool20241022()
+    result = await tool(action='type', text='${escapedText}')
+    return {'success': True, 'result': str(result)}
+
+result = asyncio.run(type_text())
+print(json.dumps(result))`;
+
+    const scriptBase64 = Buffer.from(pythonScript).toString('base64');
+    const writeCommand = `docker exec ${this.vncContainerId} sh -c 'echo "${scriptBase64}" | base64 -d > /tmp/type_text.py'`;
+    await this.execCommand(writeCommand);
+    
+    const execCommand = `docker exec ${this.vncContainerId} python3 /tmp/type_text.py`;
+    const { stdout } = await this.execCommand(execCommand);
+    return JSON.parse(stdout.trim());
+  }
+
   // 处理MCP请求
   async handleRequest(request) {
     this.log(`🔧 Handling request: ${request.method}`);
@@ -534,6 +605,28 @@ print(json.dumps(result))`;
               properties: {},
               required: []
             }
+          },
+          {
+            name: 'vnc_key',
+            description: '按下特定按键（如Enter、Tab、Ctrl+C等）',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                text: { type: 'string', description: '按键名称（如 "Return", "Tab", "ctrl+c"）' }
+              },
+              required: ['text']
+            }
+          },
+          {
+            name: 'vnc_type',
+            description: '输入文本内容',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                text: { type: 'string', description: '要输入的文本' }
+              },
+              required: ['text']
+            }
           }
         ]
       }
@@ -678,6 +771,38 @@ print(json.dumps(result))`;
               {
                 type: 'text',
                 text: `当前鼠标位置: ${JSON.stringify(posResult.position)}`
+              }
+            ]
+          }
+        };
+
+      case 'vnc_key':
+        this.log(`⌨️ Executing vnc_key with text: ${args.text}`);
+        await this.pressKey(args.text);
+        return {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: `按键 "${args.text}" 执行完成`
+              }
+            ]
+          }
+        };
+
+      case 'vnc_type':
+        this.log(`⌨️ Executing vnc_type with text: ${args.text}`);
+        await this.typeText(args.text);
+        return {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: `文本输入完成: "${args.text}"`
               }
             ]
           }
