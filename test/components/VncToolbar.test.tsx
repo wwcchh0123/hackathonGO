@@ -92,6 +92,19 @@ describe('VncToolbar', () => {
     expect(screen.getByText('连接中断')).toBeInTheDocument()
   })
 
+  it('shows loading icon on start when isLoading true', () => {
+    const { getByText } = render(
+      <VncToolbar
+        vncState={{ ...baseState, isLoading: true, isActive: false }}
+        isConnected={false}
+        onStart={jest.fn()}
+        onStop={jest.fn()}
+        onRefresh={jest.fn()}
+      />
+    )
+    expect(getByText('启动中')).toBeInTheDocument()
+  })
+
   it('shows container chip when containerId present', () => {
     render(
       <VncToolbar

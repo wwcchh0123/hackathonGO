@@ -45,11 +45,42 @@ describe('StreamingOutput', () => {
       }
     }
 
-    render(<StreamingOutput sessionId={'s2'} isActive={true} />)
+    const { container } = render(<StreamingOutput sessionId={'s2'} isActive={true} />)
     expect(screen.getByText(/Claude Code 执行状态/)).toBeInTheDocument()
     expect(screen.getByText(/使用工具/)).toBeInTheDocument()
     expect(screen.getByText(/工具结果/)).toBeInTheDocument()
     expect(screen.getAllByText(/警告/).length).toBeGreaterThan(0)
     expect(screen.getByText(/错误发生/)).toBeInTheDocument()
+    // Toggle collapse by clicking header
+    const header = container.querySelector('[class*=MuiBox-root]') as HTMLElement
+    header.click()
+  })
+
+  it('handles init/ready/spawn/response/raw/system/timeout stages', () => {
+    // @ts-ignore
+    (window as any).api = {
+      onClaudeStream: (handler: any) => {
+        const sessionId = 's3'
+        handler(null, { type: 'stream-start', sessionId, timestamp: new Date().toISOString(), data: { command: 'run' } })
+        handler(null, { type: 'stream-data', sessionId, timestamp: new Date().toISOString(), data: { stage: 'init', content: '🚀 初始化' } })
+        handler(null, { type: 'stream-data', sessionId, timestamp: new Date().toISOString(), data: { stage: 'ready', content: '⚡ 就绪' } })
+        handler(null, { type: 'stream-data', sessionId, timestamp: new Date().toISOString(), data: { stage: 'spawn', content: '⚡ 启动进程' } })
+        handler(null, { type: 'stream-data', sessionId, timestamp: new Date().toISOString(), data: { stage: 'response', content: '💬 回复内容' } })
+        handler(null, { type: 'stream-data', sessionId, timestamp: new Date().toISOString(), data: { stage: 'raw', content: '💭 原始输出' } })
+        handler(null, { type: 'stream-data', sessionId, timestamp: new Date().toISOString(), data: { stage: 'system', content: '⚙️ 系统消息' } })
+        handler(null, { type: 'stream-data', sessionId, timestamp: new Date().toISOString(), data: { stage: 'timeout', content: '⏱️ 超时' } })
+        handler(null, { type: 'stream-end', sessionId, timestamp: new Date().toISOString(), data: { success: true } })
+        return () => {}
+      }
+    }
+
+    render(<StreamingOutput sessionId={'s3'} isActive={true} />)
+    expect(screen.getAllByText(/初始化/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/就绪/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/启动进程/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/回复内容/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/原始输出/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/系统消息/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/超时/).length).toBeGreaterThan(0)
   })
 })

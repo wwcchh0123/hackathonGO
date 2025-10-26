@@ -25,7 +25,7 @@ jest.mock('../src/hooks/useSessionStorage', () => ({
 }));
 
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import App from '../src/App';
 import { useSessionStorage } from '../src/hooks/useSessionStorage';
 import { useSpeechRecognition } from '../src/hooks/useSpeechRecognition';
@@ -305,6 +305,30 @@ describe('App - 消息持久化功能', () => {
       });
     });
   });
+
+  describe('页面切换与持久化配置', () => {
+    it('切换到设置页并返回聊天页', () => {
+      const { container } = render(<App />)
+      // 点击右上角设置按钮（通过 SettingsIcon 的父按钮）
+      const settingsIcon = screen.getByTestId('SettingsIcon')
+      const settingsBtn = settingsIcon.closest('button') as HTMLButtonElement
+      fireEvent.click(settingsBtn)
+      expect(!!screen.getByText('CLI Configuration')).toBe(true)
+      // 点击返回按钮（ArrowBackIcon）
+      const backIcon = screen.getByTestId('ArrowBackIcon')
+      const backBtn = backIcon.closest('button') as HTMLButtonElement
+      fireEvent.click(backBtn)
+      // 返回到聊天页后显示标题
+      expect(!!screen.getByText('XGopilot for Desktop')).toBe(true)
+    })
+
+    it('持久化与恢复配置', () => {
+      localStorage.setItem('config', JSON.stringify({ command: 'x', baseArgs: ['--output-format', 'stream-json'], cwd: '/d', envText: 'K=V' }))
+      render(<App />)
+      expect(useSessionStorage).toHaveBeenCalled()
+      // 不抛错即可
+    })
+  })
 
   describe('VNC 状态管理', () => {
     it('应该正确初始化 VNC 状态', async () => {
