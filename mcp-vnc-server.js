@@ -10,6 +10,9 @@ import { promisify } from 'util';
 import fs from 'fs';
 import path from 'path';
 
+// VNC Docker 镜像配置 - 从环境变量读取
+const VNC_DOCKER_IMAGE = process.env.VNC_DOCKER_IMAGE || 'aslan-spock-register.qiniu.io/devops/anthropic-quickstarts:computer-use-demo-latest';
+
 
 // MCP协议消息处理
 class VncMcpServer {
@@ -42,7 +45,9 @@ class VncMcpServer {
   async findVncContainer() {
     this.log('🔍 Searching for VNC container...');
     try {
-      const { stdout } = await this.execCommand('docker ps --format "{{.ID}}\t{{.Image}}\t{{.Names}}" | grep computer-use-demo');
+      // 使用镜像名称的最后一部分进行匹配，兼容不同的镜像仓库前缀
+      const imageName = VNC_DOCKER_IMAGE.split('/').pop() || 'computer-use-demo-latest';
+      const { stdout } = await this.execCommand(`docker ps --format "{{.ID}}\t{{.Image}}\t{{.Names}}" | grep ${imageName}`);
       this.log('📋 Docker ps output: ' + stdout);
       if (stdout.trim()) {
         const lines = stdout.trim().split('\n');

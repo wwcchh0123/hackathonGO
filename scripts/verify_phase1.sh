@@ -53,8 +53,8 @@ verify_step "Docker 服务运行正常" \
     "docker info > /dev/null 2>&1" \
     true
 
-verify_step "computer-use-demo:local 镜像存在" \
-    "docker images | grep -q 'computer-use-demo.*local'" \
+verify_step "aslan-spock-register.qiniu.io/devops/anthropic-quickstarts:computer-use-demo-latest 镜像存在" \
+    "docker images | grep -q 'aslan-spock-register.qiniu.io/devops/anthropic-quickstarts.*computer-use-demo-latest'" \
     true
 
 # 3. 验证端口可用性
