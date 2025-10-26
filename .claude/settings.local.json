@@ -4,7 +4,8 @@
       "Bash(npm run build:*)",
       "Read(//Users/jicarl/Downloads/iat-js-demo/**)",
       "Bash(npm test:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run test:coverage:*)"
     ],
     "deny": [],
     "ask": []
