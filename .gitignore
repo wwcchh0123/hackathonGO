@@ -11,6 +11,3 @@ coverage
 
 # 环境变量
 .env
-
-.package-lock.json
-.pnpm-lock.yaml
