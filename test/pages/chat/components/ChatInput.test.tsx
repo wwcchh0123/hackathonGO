@@ -48,4 +48,17 @@ describe('ChatInput', () => {
     fireEvent.click(switchEl)
     expect(baseProps.onToggleVnc).toHaveBeenCalled()
   })
+
+  it('shows voice error and listening UI, toggles stop', () => {
+    const props = { ...baseProps, voiceError: '错误', isListening: true }
+    render(<ChatInput {...props} />)
+    expect(screen.getByText('错误')).toBeInTheDocument()
+    expect(screen.getByText('正在录音,请说话...')).toBeInTheDocument()
+    const micButton = screen.getByRole('button', { name: /点击停止录音/ })
+    fireEvent.click(micButton)
+    expect(baseProps.onStopVoice).toHaveBeenCalled()
+    // Send button should be disabled while listening
+    const sendButton = screen.getByRole('button', { name: '发送消息 (Enter)' })
+    expect(sendButton).toBeDisabled()
+  })
 })

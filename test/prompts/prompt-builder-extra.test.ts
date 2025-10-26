@@ -29,5 +29,14 @@ describe('PromptBuilder extras', () => {
     expect(end).toHaveBeenCalled()
     group.mockRestore(); log.mockRestore(); end.mockRestore()
   })
-})
 
+  it('createPromptBuilderFromEnv builds without platform gracefully', () => {
+    const original = (global as any).navigator
+    ;(global as any).navigator = undefined
+    const mod = require('../../src/prompts/prompt-builder')
+    const pb = mod.createPromptBuilderFromEnv(true, { vnc: 5900, web: 6080 }, 'CI')
+    const prompt = pb.build()
+    expect(prompt).toContain('虚拟桌面') // basic content ensured
+    ;(global as any).navigator = original
+  })
+})

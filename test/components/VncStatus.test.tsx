@@ -89,4 +89,16 @@ describe('VncStatus', () => {
     expect(screen.getByText('novnc:6080')).toBeInTheDocument()
     expect(screen.getByText('tools:6100')).toBeInTheDocument()
   })
+
+  it('renders error message when vncState.error present', () => {
+    render(
+      <VncStatus
+        vncState={{ ...baseState, error: '出错了' }}
+        vncHealth={[]}
+        isConnected={false}
+        connectionError={null}
+      />
+    )
+    expect(screen.getByText('出错了')).toBeInTheDocument()
+  })
 })
