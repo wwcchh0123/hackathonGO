@@ -219,6 +219,45 @@ export const StreamingOutput: React.FC<StreamingOutputProps> = ({
     return '#ffffff'
   }
 
+  // 获取气泡样式
+  const getBubbleStyle = (log: LogEntry) => {
+    const isUserSide = log.stage === 'init' || log.stage === 'system'
+    const baseColor = getLogColor(log)
+
+    return {
+      alignSelf: isUserSide ? 'flex-end' : 'flex-start',
+      maxWidth: '85%',
+      bgcolor: isUserSide ? 'rgba(33, 150, 243, 0.08)' : 'white',
+      borderRadius: 2,
+      p: 2,
+      mb: 1.5,
+      border: '1px solid',
+      borderColor: `${baseColor}60`,
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+        transform: 'translateY(-1px)',
+        borderColor: baseColor
+      }
+    }
+  }
+
+  // 获取气泡头部样式
+  const getBubbleHeaderIcon = (log: LogEntry) => {
+    if (log.isError || log.stage === 'error') return '❌'
+    if (log.stage === 'warning') return '⚠️'
+    if (log.stage === 'success' || log.stage === 'completed') return '✅'
+    if (log.stage === 'response') return '💬'
+    if (log.stage === 'tool') return '🔧'
+    if (log.stage === 'tool-result') return '📋'
+    if (log.stage === 'init') return '🚀'
+    if (log.stage === 'ready' || log.stage === 'spawn') return '⚡'
+    if (log.stage === 'raw') return '💭'
+    if (log.stage === 'system') return '⚙️'
+    return '📍'
+  }
+
   if (!isActive) return null
 
   return (
@@ -279,10 +318,10 @@ export const StreamingOutput: React.FC<StreamingOutputProps> = ({
 
       {/* 可折叠的日志区域 */}
       <Collapse in={isExpanded}>
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ bgcolor: 'grey.50', minHeight: '200px' }}>
           {/* 命令信息 */}
           {command && (
-            <Box sx={{ mb: 2 }}>
+            <Box sx={{ px: 2, pt: 2, pb: 1 }}>
               <Typography variant="caption" color="text.secondary" gutterBottom>
                 执行命令:
               </Typography>
@@ -290,10 +329,13 @@ export const StreamingOutput: React.FC<StreamingOutputProps> = ({
                 variant="body2"
                 sx={{
                   fontFamily: 'monospace',
-                  bgcolor: 'grey.100',
-                  p: 1,
+                  bgcolor: 'white',
+                  p: 1.5,
                   borderRadius: 1,
-                  fontSize: '0.75rem'
+                  fontSize: '0.75rem',
+                  border: '1px solid',
+                  borderColor: 'grey.300',
+                  color: 'grey.800'
                 }}
               >
                 {command}
@@ -301,93 +343,158 @@ export const StreamingOutput: React.FC<StreamingOutputProps> = ({
             </Box>
           )}
 
-          {/* Claude Code 真实输出日志 */}
+          {/* Claude Code 消息气泡列表 */}
           <Box
             sx={{
-              maxHeight: 400,
+              maxHeight: 500,
               overflow: 'auto',
-              bgcolor: 'grey.900',
-              borderRadius: 1,
-              p: 1.5,
-              border: '1px solid #333'
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 0.5,
+              '&::-webkit-scrollbar': {
+                width: '8px'
+              },
+              '&::-webkit-scrollbar-track': {
+                bgcolor: 'rgba(0, 0, 0, 0.1)',
+                borderRadius: '4px'
+              },
+              '&::-webkit-scrollbar-thumb': {
+                bgcolor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: '4px',
+                '&:hover': {
+                  bgcolor: 'rgba(255, 255, 255, 0.3)'
+                }
+              }
             }}
           >
             {logs.length === 0 ? (
-              <Typography
-                variant="body2"
-                sx={{ 
-                  color: 'grey.400', 
-                  textAlign: 'center', 
-                  py: 3,
-                  fontStyle: 'italic' 
-                }}
-              >
-                等待 Claude Code 输出...
-              </Typography>
+              <Box sx={{
+                textAlign: 'center',
+                py: 6,
+                color: 'grey.400'
+              }}>
+                <Psychology sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+                <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                  等待 Claude Code 输出...
+                </Typography>
+              </Box>
             ) : (
               logs.map((log, index) => (
-                <Box key={index} sx={{ mb: 1 }}>
-                  {/* 主要输出行 */}
+                <Box
+                  key={index}
+                  sx={getBubbleStyle(log)}
+                >
+                  {/* 气泡头部 */}
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    mb: 1
+                  }}>
+                    <Typography sx={{ fontSize: '1.2rem' }}>
+                      {getBubbleHeaderIcon(log)}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: 'grey.400',
+                        fontSize: '0.7rem',
+                        fontFamily: 'monospace'
+                      }}
+                    >
+                      {log.timestamp.toLocaleTimeString()}
+                    </Typography>
+                    {log.stage && (
+                      <Chip
+                        label={getStageLabel(log.stage)}
+                        size="small"
+                        sx={{
+                          height: '18px',
+                          fontSize: '0.65rem',
+                          bgcolor: `${getLogColor(log)}30`,
+                          color: getLogColor(log),
+                          border: `1px solid ${getLogColor(log)}60`,
+                          ml: 'auto'
+                        }}
+                      />
+                    )}
+                  </Box>
+
+                  {/* 主要内容 */}
                   <Typography
                     component="div"
                     sx={{
-                      color: getLogColor(log),
-                      fontSize: '0.8rem',
+                      color: 'grey.800',
+                      fontSize: '0.9rem',
                       fontFamily: '"Fira Code", "JetBrains Mono", "Monaco", monospace',
-                      lineHeight: 1.4,
+                      lineHeight: 1.6,
                       wordBreak: 'break-word',
                       whiteSpace: 'pre-wrap'
                     }}
                   >
-                    <span style={{ 
-                      color: '#555', 
-                      marginRight: 8,
-                      fontSize: '0.7rem'
-                    }}>
-                      [{log.timestamp.toLocaleTimeString()}]
-                    </span>
-                    <span style={{ marginRight: 4 }}>
-                      {log.content}
-                    </span>
+                    {log.content.replace(/^[🔧💬❌✅⚠️🤔📍⚡💭🧠⚙️🔨🧪] /, '')}
                   </Typography>
-                  
-                  {/* 如果有原始输出且与处理后内容不同，显示原始内容 */}
-                  {log.rawOutput && 
+
+                  {/* 原始输出（代码块） */}
+                  {log.rawOutput &&
                    log.rawOutput !== log.content.replace(/^[🔧💬❌✅⚠️🤔📍⚡💭🧠⚙️🔨🧪] /, '') && (
-                    <Typography
-                      component="div"
+                    <Box
                       sx={{
-                        color: '#888',
-                        fontSize: '0.7rem',
-                        fontFamily: '"Fira Code", "JetBrains Mono", "Monaco", monospace',
-                        fontStyle: 'italic',
-                        ml: 4,
-                        mt: 0.5,
-                        pl: 1,
-                        borderLeft: '2px solid #333',
-                        opacity: 0.8,
-                        whiteSpace: 'pre-wrap'
+                        mt: 1.5,
+                        p: 1.5,
+                        bgcolor: 'grey.100',
+                        borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: 'grey.300'
                       }}
                     >
-                      {log.rawOutput}
-                    </Typography>
+                      <Typography
+                        component="div"
+                        sx={{
+                          color: 'grey.700',
+                          fontSize: '0.75rem',
+                          fontFamily: '"Fira Code", "JetBrains Mono", "Monaco", monospace',
+                          lineHeight: 1.6,
+                          whiteSpace: 'pre-wrap',
+                          maxHeight: '200px',
+                          overflow: 'auto',
+                          '&::-webkit-scrollbar': {
+                            width: '4px',
+                            height: '4px'
+                          },
+                          '&::-webkit-scrollbar-thumb': {
+                            backgroundColor: 'grey.400',
+                            borderRadius: '2px'
+                          }
+                        }}
+                      >
+                        {log.rawOutput}
+                      </Typography>
+                    </Box>
                   )}
-                  
-                  {/* 如果有元数据，显示在小字体中 */}
-                  {log.metadata && Object.keys(log.metadata).length > 0 && (
-                    <Typography
-                      component="div"
-                      sx={{
-                        color: '#666',
-                        fontSize: '0.65rem',
-                        fontFamily: 'monospace',
-                        ml: 2,
-                        mt: 0.5,
-                        opacity: 0.7
-                      }}
-                    >
-                      📋 {JSON.stringify(log.metadata, null, 0).replace(/[{}]/g, '').replace(/"/g, '')}
-                    </Typography>
+
+                  {/* 元数据 */}
+                  {log.metadata && Object.keys(log.metadata).length > 0 &&
+                   !log.metadata.messageId &&
+                   !log.metadata.model && (
+                    <Box sx={{
+                      mt: 1,
+                      pt: 1,
+                      borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                    }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: 'grey.500',
+                          fontSize: '0.7rem',
+                          fontFamily: 'monospace'
+                        }}
+                      >
+                        {log.metadata.toolName && `🔧 ${log.metadata.toolName}`}
+                        {log.metadata.fullContentLength && ` • ${log.metadata.fullContentLength} 字符`}
+                      </Typography>
+                    </Box>
                   )}
                 </Box>
               ))

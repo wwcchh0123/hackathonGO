@@ -6,6 +6,7 @@
 
 export const COMPUTER_USE_PROMPT = `<VNC_DESKTOP>
 * 你正在控制一个运行在 Docker 容器中的 Ubuntu 虚拟机，使用 {systemArchitecture} 架构，有互联网访问权限。
+* 通过 MCP VNC Desktop 工具 (mcp__vnc-desktop__*) 连接和控制虚拟桌面。
 * 可以自由安装 Ubuntu 应用。使用 curl 而不是 wget。
 * Firefox ESR 已预装。要打开 Firefox，点击 Firefox 图标即可。
 * 使用 Bash 工具启动 GUI 应用时，需要设置 DISPLAY=:1 并使用子 shell，例如 "(DISPLAY=:1 xterm &)"。GUI 应用可能需要一些时间才能出现，使用截屏确认。
@@ -14,7 +15,8 @@ export const COMPUTER_USE_PROMPT = `<VNC_DESKTOP>
 * Computer 工具调用需要时间。在可能的情况下，尝试在一个请求中链接多个调用。
 
 **重要：当前 VNC 虚拟桌面已启用，所有操作都应该在虚拟桌面中完成。**
-**使用 Computer Use 工具（截图、点击、键盘输入）来操作虚拟桌面。**
+**必须使用 MCP VNC Desktop 工具 (mcp__vnc-desktop__*) 来操作虚拟桌面（截图、点击、键盘输入等）。**
+**严格禁止使用 MCP Playwright 工具 (mcp__playwright__*)，所有浏览器操作必须通过虚拟桌面的 Firefox 完成。**
 </VNC_DESKTOP>
 
 <VNC_IMPORTANT>
