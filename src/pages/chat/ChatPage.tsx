@@ -130,14 +130,29 @@ export const ChatPage: React.FC<ChatPageProps> = ({
       // ========== System Prompt 集成 ==========
 
       // 1. 检测 VNC 状态
+      // VNC 被视为"启用"需要满足两个条件:
+      // - 条件1: Docker 容器正在运行
+      // - 条件2: 用户界面显示了 VNC 面板 (showVnc === true)
       let vncEnabled = false
       let vncPorts = undefined
 
       try {
         if (window.api.vnc?.status) {
           const vncStatus = await window.api.vnc.status()
-          vncEnabled = vncStatus.running || false
+          const containerRunning = vncStatus.running || false
+
+          // 只有当容器运行 AND 界面显示 VNC 面板时，才启用 VNC 模式
+          vncEnabled = containerRunning && showVnc
           vncPorts = vncStatus.ports
+
+          console.log('🔍 VNC 状态检测:', {
+            containerRunning,
+            showVnc,
+            vncEnabled: vncEnabled ? '✅ 启用' : '❌ 未启用',
+            containerId: vncStatus.containerId,
+            ports: vncPorts,
+            原因: !containerRunning ? '容器未运行' : !showVnc ? 'VNC 面板已关闭' : 'VNC 已启用'
+          })
         }
       } catch (err) {
         console.warn('⚠️ 无法获取 VNC 状态:', err)
@@ -172,6 +187,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({
         console.log('统计信息:', stats)
         console.log('VNC 状态:', vncEnabled ? '✅ 已启用' : '❌ 未启用')
         console.log('估算 Tokens:', stats.estimatedTokens)
+        console.log('是否包含 VNC_DESKTOP:', systemPrompt.includes('<VNC_DESKTOP>') ? '✅ 是' : '❌ 否')
+        console.log('完整 System Prompt:\n', systemPrompt)
         console.groupEnd()
       }
 
