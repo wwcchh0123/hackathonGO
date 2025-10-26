@@ -20,7 +20,7 @@ describe('AppHeader', () => {
         />
       )
 
-      expect(screen.getByText('Agent for Desktop')).toBeInTheDocument()
+      expect(screen.getByText('XGopilot for Desktop')).toBeInTheDocument()
     })
 
     it('应该渲染应用图标', () => {

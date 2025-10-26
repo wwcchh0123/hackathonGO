@@ -134,7 +134,7 @@ docs(readme): 更新安装说明
 
 ## 功能特性
 
-- 运行/停止可配置的 CLI 命令（如 `claude-code`）
+- 运行/停止可配置的 CLI 命令（如 `XGopilot`）
 - 实时流式输出 stdout/stderr 到 UI
 - 向运行中的进程发送 stdin 输入
 - 通过原生对话框选择工作目录

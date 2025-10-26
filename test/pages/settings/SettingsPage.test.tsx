@@ -51,9 +51,9 @@ describe('SettingsPage', () => {
 
   describe('Command 输入', () => {
     it('应该显示当前 command 值', () => {
-      render(<SettingsPage {...defaultProps} command="claude-code" />)
+      render(<SettingsPage {...defaultProps} command="XGopilot" />)
       const input = screen.getByLabelText('Command') as HTMLInputElement
-      expect(input.value).toBe('claude-code')
+      expect(input.value).toBe('XGopilot')
     })
 
     it('应该在输入时调用 setCommand', async () => {

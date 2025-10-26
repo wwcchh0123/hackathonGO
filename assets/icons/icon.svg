@@ -28,8 +28,8 @@
     <circle cx="75" cy="22" r="7" fill="#ffffff" stroke="#333" stroke-width="2"/>
     
     <!-- 标题文字 -->
-    <text x="120" y="30" font-family="Comic Sans MS, cursive" font-size="18" 
-          fill="#ffffff" font-weight="bold">Claude Code</text>
+    <text x="120" y="30" font-family="Comic Sans MS, cursive" font-size="18"
+          fill="#ffffff" font-weight="bold">XGopilot</text>
     
     <!-- 代码内容 - 手绘风格 -->
     <g transform="translate(20, 70)">
@@ -119,6 +119,6 @@
   </g>
   
   <!-- 版本标识 -->
-  <text x="256" y="480" font-family="Comic Sans MS, cursive" font-size="16" 
-        fill="#666" text-anchor="middle">Agent for Desktop</text>
+  <text x="256" y="480" font-family="Comic Sans MS, cursive" font-size="16"
+        fill="#666" text-anchor="middle">XGopilot for Desktop</text>
 </svg>

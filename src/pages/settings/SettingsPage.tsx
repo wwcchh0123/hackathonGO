@@ -217,10 +217,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <Stack spacing={2}>
               <Box>
                 <Typography variant="body2" sx={{ color: "grey.700" }}>
-                  Agent for Desktop
+                  XGopilot for Desktop
                 </Typography>
                 <Typography variant="body2" sx={{ color: "grey.500" }}>
-                  Electron wrapper for Claude Code CLI
+                  Electron wrapper for XGopilot
                 </Typography>
               </Box>
               <Divider />
