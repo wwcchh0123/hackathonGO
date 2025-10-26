@@ -16,9 +16,9 @@ interface ImportMeta {
 // Electron API 类型定义
 declare global {
   interface Window {
-    api: {
+    api?: {
       // 消息发送API
-      sendMessage: (options: {
+      sendMessage?: (options: {
         command: string;
         baseArgs?: string[];
         message: string;
@@ -35,20 +35,20 @@ declare global {
         signal?: string;
         terminated?: boolean;
       }>;
-      
+
       // 任务终止API
-      terminateSession: (sessionId: string) => Promise<{
+      terminateSession?: (sessionId: string) => Promise<{
         success: boolean;
         message?: string;
         duration?: number;
         error?: string;
       }>;
-      
+
       // 目录选择API
-      selectDir: () => Promise<string | null>;
-      
+      selectDir?: () => Promise<string | null>;
+
       // 会话持久化API
-      sessions: {
+      sessions?: {
         load: () => Promise<{
           sessions: any[];
           activeSessionId: string | null;
@@ -58,11 +58,11 @@ declare global {
           error?: string;
         }>;
       };
-      
+
       // 流式输出API
       onClaudeStream?: (callback: (event: any, message: any) => void) => () => void;
       offClaudeStream?: (callback: any) => void;
-      
+
       // VNC管理API
       vnc?: {
         start: () => Promise<any>;

@@ -48,16 +48,26 @@ declare global {
         stderr?: string
         error?: string
         exitCode?: number
+        signal?: string
+        terminated?: boolean
       }>
-      
+
+      // 任务终止API
+      terminateSession: (sessionId: string) => Promise<{
+        success: boolean
+        message?: string
+        duration?: number
+        error?: string
+      }>
+
       selectDir: () => Promise<string | null>
-      
+
       // 会话持久化接口
       sessions: {
         load: () => Promise<import('./session').SessionStorage>
         save: (data: import('./session').SessionStorage) => Promise<{ success: boolean; error?: string }>
       }
-      
+
       vnc: {
         start: () => Promise<VncStartResult>
         stop: () => Promise<VncStopResult>
