@@ -205,50 +205,85 @@ class ClaudeJsonStreamProcessor {
     }
   }
 
-  handleSystemMessage(data) {
-    // 不显示系统初始化消息，只用于内部状态跟踪
-    // 让用户看到更清爽的执行过程
-  }
-
   handleAssistantMessage(data) {
     const message = data.message
     if (!message) return
 
-    // 只处理工具调用，显示进度状态
+    // 处理消息内容
     if (message.content && Array.isArray(message.content)) {
       for (const content of message.content) {
-        if (content.type === 'tool_use') {
+        // 显示文本消息
+        if (content.type === 'text' && content.text) {
           sendStreamUpdate(this.sessionId, {
             type: 'stream-data',
             data: {
-              stage: 'tool',
-              content: `🔧 正在调用工具: ${content.name}`,
+              stage: 'response',
+              content: `💬 ${content.text}`,
               metadata: {
-                toolName: content.name,
-                toolId: content.id
+                messageId: message.id,
+                model: message.model
               }
             }
           })
         }
-        // 文本内容不在中间过程显示，只在最终result显示
+
+        // 显示工具调用详情
+        if (content.type === 'tool_use') {
+          const toolInput = JSON.stringify(content.input, null, 2)
+          sendStreamUpdate(this.sessionId, {
+            type: 'stream-data',
+            data: {
+              stage: 'tool',
+              content: `🔧 调用工具: ${content.name}`,
+              rawOutput: `参数:\n${toolInput}`,
+              metadata: {
+                toolName: content.name,
+                toolId: content.id,
+                input: content.input
+              }
+            }
+          })
+        }
       }
     }
   }
 
   handleUserMessage(data) {
-    // 处理工具执行结果，只显示状态不显示详细内容
+    // 处理工具执行结果，显示详细内容
     if (data.message?.content?.[0]?.type === 'tool_result') {
       const toolResult = data.message.content[0]
       const isError = toolResult.is_error
+
+      // 获取工具执行结果内容
+      let resultContent = ''
+      if (Array.isArray(toolResult.content)) {
+        resultContent = toolResult.content
+          .map(item => {
+            if (item.type === 'text') return item.text
+            if (item.type === 'image') return '[图片]'
+            return JSON.stringify(item)
+          })
+          .join('\n')
+      } else if (typeof toolResult.content === 'string') {
+        resultContent = toolResult.content
+      }
+
+      // 限制显示长度
+      const maxLength = 500
+      const displayContent = resultContent.length > maxLength
+        ? resultContent.substring(0, maxLength) + '\n...(内容过长，已截断)'
+        : resultContent
 
       sendStreamUpdate(this.sessionId, {
         type: 'stream-data',
         data: {
           stage: isError ? 'error' : 'tool-result',
           content: `${isError ? '❌' : '✅'} 工具执行${isError ? '失败' : '完成'}`,
+          rawOutput: displayContent,
           metadata: {
             toolUseId: toolResult.tool_use_id,
-            isError
+            isError,
+            fullContentLength: resultContent.length
           }
         }
       })

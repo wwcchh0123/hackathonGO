@@ -1,10 +1,6 @@
 import React from 'react';
-import { Box, Paper, Typography, Card, CardMedia, IconButton, Tooltip } from '@mui/material';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy'
-import EditIcon from '@mui/icons-material/Edit'
+import { Box, Typography, Card, CardMedia } from '@mui/material';
 import { MarkdownContent } from '../../../components/MarkdownContent'
-import { MessageActions } from './MessageActions'
-import { Code, Image as ImageIcon, Build } from '@mui/icons-material';
 
 export interface Message {
   id: string;
@@ -53,117 +49,6 @@ const renderImages = (images: string[]) => {
   );
 };
 
-const renderToolResults = (toolResults: ToolResult[]) => {
-  if (!toolResults || toolResults.length === 0) return null;
-
-  return (
-    <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-      {toolResults.map((tool) => (
-        <Paper
-          key={tool.id}
-          variant="outlined"
-          sx={{
-            p: 2,
-            bgcolor: tool.status === 'success' ? '#f8fff8' : 
-                     tool.status === 'error' ? '#fff8f8' : '#f8f8ff',
-            borderColor: tool.status === 'success' ? '#4caf50' :
-                        tool.status === 'error' ? '#f44336' : '#2196f3'
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <Build 
-              fontSize="small" 
-              color={tool.status === 'success' ? 'success' : 
-                     tool.status === 'error' ? 'error' : 'primary'}
-            />
-            <Typography variant="subtitle2" fontWeight={600}>
-              {tool.name}
-            </Typography>
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                bgcolor: tool.status === 'success' ? '#4caf50' :
-                        tool.status === 'error' ? '#f44336' : '#2196f3',
-                color: 'white',
-                px: 1,
-                py: 0.25,
-                borderRadius: 0.5,
-                textTransform: 'uppercase',
-                fontSize: '10px'
-              }}
-            >
-              {tool.status}
-            </Typography>
-          </Box>
-          
-          {tool.output && (
-            <Box sx={{ mb: 1 }}>
-              <Typography variant="body2" fontWeight={500} gutterBottom>
-                输出:
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontFamily: 'SFMono-Regular, Consolas, monospace',
-                  fontSize: '12px',
-                  whiteSpace: 'pre-wrap',
-                  bgcolor: '#f5f5f5',
-                  p: 1,
-                  borderRadius: 0.5,
-                  maxHeight: 200,
-                  overflow: 'auto'
-                }}
-              >
-                {tool.output}
-              </Typography>
-            </Box>
-          )}
-          
-          {tool.error && (
-            <Box sx={{ mb: 1 }}>
-              <Typography variant="body2" fontWeight={500} color="error" gutterBottom>
-                错误:
-              </Typography>
-              <Typography
-                variant="body2"
-                color="error"
-                sx={{
-                  fontFamily: 'SFMono-Regular, Consolas, monospace',
-                  fontSize: '12px',
-                  whiteSpace: 'pre-wrap',
-                  bgcolor: '#fff5f5',
-                  p: 1,
-                  borderRadius: 0.5
-                }}
-              >
-                {tool.error}
-              </Typography>
-            </Box>
-          )}
-          
-          {tool.metadata && Object.keys(tool.metadata).length > 0 && (
-            <Box>
-              <Typography variant="body2" fontWeight={500} gutterBottom>
-                元数据:
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontFamily: 'SFMono-Regular, Consolas, monospace',
-                  fontSize: '11px',
-                  color: 'text.secondary'
-                }}
-              >
-                {JSON.stringify(tool.metadata, null, 2)}
-              </Typography>
-            </Box>
-          )}
-        </Paper>
-      ))}
-    </Box>
-  );
-};
-
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPrefillInput }) => {
   const isUser = message.type === 'user';
   const isSystem = message.type === 'system';
@@ -173,7 +58,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPrefill
       sx={{
         display: 'flex',
         justifyContent: isUser ? 'flex-end' : 'flex-start',
-        mb: 3,
+        mb: 2,
         alignItems: 'flex-start',
         gap: 2
       }}
@@ -214,9 +99,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPrefill
       >
         <Box
           sx={{
-            p: 2,
-            pt: 1,
-            pb: 6,
+            px: 1.5,
+            py: 0,
             bgcolor: isUser 
               ? '#CC785C' 
               : isSystem 
@@ -229,7 +113,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPrefill
                 : '#1a1a1a',
             borderRadius: 2,
             border: isSystem ? '1px solid #fee' : 'none',
-            position: 'relative'
           }}
         >
           <Box sx={{
@@ -246,31 +129,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPrefill
           }}>
             <MarkdownContent content={message.content} />
           </Box>
-          <Typography
-            variant="caption"
-            sx={{
-              display: 'block',
-              mt: 1,
-              opacity: 0.7,
-              fontSize: '11px',
-            }}
-          >
-            {message.timestamp.toLocaleTimeString()}
-          </Typography>
-
-          {/* 左下角操作按钮 */}
-          <MessageActions 
-            content={message.content}
-            isUser={isUser}
-            onPrefillInput={onPrefillInput}
-          />
         </Box>
         
         {/* 渲染图片附件 */}
         {renderImages(message.images || [])}
-        
-        {/* 渲染工具执行结果 */}
-        {renderToolResults(message.toolResults || [])}
       </Box>
       
       {isUser && (
