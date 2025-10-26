@@ -16,6 +16,10 @@ const __filename = fileURLToPath(import.meta.url)
 // 全局VNC状态管理
 let vncContainerId = null
 let vncStartupPromise = null
+
+// VNC Docker 镜像配置 - 从环境变量读取，支持自定义镜像
+const VNC_DOCKER_IMAGE = process.env.VNC_DOCKER_IMAGE || 'aslan-spock-register.qiniu.io/devops/anthropic-quickstarts:computer-use-demo-latest'
+
 const VNC_PORTS = {
   vnc: 5900,
   web: 6080,
@@ -535,7 +539,7 @@ async function startVncInternal() {
     await checkDockerAvailable()
 
     // 2. 检查镜像存在性
-    await checkImageExists('computer-use-demo:local')
+    await checkImageExists(VNC_DOCKER_IMAGE)
 
     // 3. 停止现有容器
     if (vncContainerId) {
@@ -623,7 +627,7 @@ async function launchContainer() {
   const containerName = `vnc-desktop-${Date.now()}`
 
   // 构建完整的Docker命令
-  const command = `docker run -d --rm ${portMappings} ${envMappings} --name ${containerName} computer-use-demo:local`
+  const command = `docker run -d --rm ${portMappings} ${envMappings} --name ${containerName} ${VNC_DOCKER_IMAGE}`
 
   console.log('启动容器命令:', command)
 

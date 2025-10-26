@@ -53,7 +53,7 @@ async function startVncInternal() {
     await checkDockerAvailable()
     
     // 2. 检查镜像存在性
-    await checkImageExists('computer-use-demo:local')
+    await checkImageExists('aslan-spock-register.qiniu.io/devops/anthropic-quickstarts:computer-use-demo-latest')
     
     // 3. 停止现有容器
     if (vncContainerId) {
@@ -140,7 +140,7 @@ async function launchContainer() {
       ${portMappings} \
       ${envVars.map(env => `-e "${env}"`).join(' ')} \
       --name vnc-desktop-$(date +%s) \
-      computer-use-demo:local
+      aslan-spock-register.qiniu.io/devops/anthropic-quickstarts:computer-use-demo-latest
   `.replace(/\s+/g, ' ').trim()
   
   console.log('启动容器命令:', command)
@@ -543,7 +543,7 @@ async function testVncBasicFunctions() {
    docker logs <container-id>
    
    // 检查镜像是否正确构建
-   docker run -it computer-use-demo:local /bin/bash
+   docker run -it aslan-spock-register.qiniu.io/devops/anthropic-quickstarts:computer-use-demo-latest /bin/bash
    ```
 
 2. **端口冲突**
