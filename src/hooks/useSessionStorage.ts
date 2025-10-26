@@ -140,7 +140,9 @@ export const useSessionStorage = () => {
         }
         return session
       })
-      
+
+      // 保存时应该保持当前的 activeSessionId，这样会话选择状态不会被错误更新
+      // 但确保我们是在更新正确的会话消息
       saveSessions(updated, activeSessionId)
       return updated
     })
