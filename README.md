@@ -74,6 +74,7 @@ npm run dev:electron
 ## 文档
 
 - [科大讯飞语音识别配置指南](docs/xunfei-setup-guide.md)
+- [Playwright MCP 持久化浏览器配置指南](docs/playwright-mcp-setup.md)
 - [项目编码规范](CLAUDE.md)
 
 ## 注意事项
