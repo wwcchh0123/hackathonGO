@@ -623,11 +623,35 @@ async function launchContainer() {
     .map(env => `-e "${env}"`)
     .join(' ')
 
-  // 生成唯一的容器名
-  const containerName = `vnc-desktop-${Date.now()}`
+  // 使用固定的容器名称以支持复用
+  const containerName = 'vnc-desktop-persistent'
 
-  // 构建完整的Docker命令
-  const command = `docker run -d --rm ${portMappings} ${envMappings} --name ${containerName} ${VNC_DOCKER_IMAGE}`
+  // 检查是否存在同名容器
+  try {
+    const { stdout: existingContainers } = await execAsync(`docker ps -a -f name=${containerName} --format "{{.ID}}"`)
+    const existingId = existingContainers.trim()
+    
+    if (existingId) {
+      console.log('发现已存在的容器:', existingId)
+      // 检查容器是否正在运行
+      const { stdout: runningContainers } = await execAsync(`docker ps -f name=${containerName} --format "{{.ID}}"`)
+      
+      if (runningContainers.trim()) {
+        console.log('容器已在运行,复用现有容器:', existingId)
+        return existingId
+      } else {
+        // 启动已停止的容器
+        console.log('启动已存在的容器:', existingId)
+        await execAsync(`docker start ${existingId}`)
+        return existingId
+      }
+    }
+  } catch (error) {
+    console.log('检查现有容器时出错,将创建新容器:', error.message)
+  }
+
+  // 构建完整的Docker命令 - 移除 --rm 标志以保持容器持久化
+  const command = `docker run -d ${portMappings} ${envMappings} --name ${containerName} ${VNC_DOCKER_IMAGE}`
 
   console.log('启动容器命令:', command)
 
@@ -672,12 +696,17 @@ async function waitForPort(port, timeout = 10000, serviceName = '服务') {
   throw new Error(`${serviceName} (端口${port}) 启动超时`)
 }
 
-// 停止VNC容器
+// 停止VNC容器(但不删除)
 ipcMain.handle('stop-vnc', async (event) => {
-  return await stopVncContainer()
+  return await stopVncContainer(false)
 })
 
-async function stopVncContainer() {
+// 删除VNC容器
+ipcMain.handle('remove-vnc', async (event) => {
+  return await stopVncContainer(true)
+})
+
+async function stopVncContainer(remove = false) {
   try {
     if (vncContainerId) {
       console.log('停止VNC容器:', vncContainerId)
@@ -685,8 +714,13 @@ async function stopVncContainer() {
       // 发送SIGTERM信号，给容器时间优雅关闭
       await execAsync(`docker stop -t 10 ${vncContainerId}`)
 
+      if (remove) {
+        console.log('删除VNC容器:', vncContainerId)
+        await execAsync(`docker rm ${vncContainerId}`)
+      }
+
       vncContainerId = null
-      console.log('VNC容器已停止')
+      console.log(`VNC容器已${remove ? '删除' : '停止'}`)
     }
 
     return { success: true }
@@ -746,16 +780,10 @@ async function checkServiceHealth() {
 // 应用生命周期管理
 app.on('before-quit', async (event) => {
   if (vncContainerId) {
-    console.log('应用退出，清理VNC容器...')
-    event.preventDefault()
-
-    try {
-      await stopVncContainer()
-    } catch (error) {
-      console.error('清理VNC容器失败:', error)
-    }
-
-    app.quit()
+    console.log('应用退出,VNC容器将保持运行以便后续使用...')
+    // 不再自动停止容器,让用户可以继续使用
+    // 如果需要清理,用户可以手动调用 remove-vnc
+    console.log('提示: VNC容器将继续运行,可通过 docker stop vnc-desktop-persistent 手动停止')
   }
 })
 
