@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "playwright-browser": {
+      "command": "node",
+      "args": ["./mcp-playwright-server.js"],
+      "env": {
+        "PLAYWRIGHT_USER_DATA_DIR": "./.playwright-user-data",
+        "PLAYWRIGHT_HEADLESS": "false"
+      }
+    }
+  }
+}
