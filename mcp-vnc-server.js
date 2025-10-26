@@ -10,7 +10,6 @@ import { promisify } from 'util';
 import fs from 'fs';
 import path from 'path';
 
-const execAsync = promisify(spawn);
 
 // MCP协议消息处理
 class VncMcpServer {
@@ -145,8 +144,10 @@ print(json.dumps(result))`;
     return result;
   }
 
-  // 在VNC容器内执行点击
+  // 在VNC容器内执行点击（两步操作：移动鼠标 + 点击）
   async clickAt(x, y) {
+    this.log(`🖱️ Executing click at (${x}, ${y}) - two-step operation`);
+    
     if (!this.vncContainerId) {
       await this.findVncContainer();
       if (!this.vncContainerId) {
@@ -154,10 +155,234 @@ print(json.dumps(result))`;
       }
     }
 
-    const pythonScript = `import asyncio; import sys; sys.path.append('/home/computeruse/computer_use_demo'); from tools.computer import ComputerTool20241022; import json; async def click(): tool = ComputerTool20241022(); result = await tool(action='click', coordinate=[${x}, ${y}]); return {'success': True, 'result': str(result)}; result = asyncio.run(click()); print(json.dumps(result))`;
+    const pythonScript = `import asyncio
+import sys
+import json
+sys.path.append('/home/computeruse/computer_use_demo')
+from tools.computer import ComputerTool20241022
 
-    const command = `docker exec ${this.vncContainerId} python3 -c "${pythonScript}"`;
-    const { stdout } = await this.execCommand(command);
+async def click():
+    tool = ComputerTool20241022()
+    # 步骤1: 移动鼠标到目标位置
+    move_result = await tool(action='mouse_move', coordinate=[${x}, ${y}])
+    # 步骤2: 执行点击
+    click_result = await tool(action='left_click')
+    return {'success': True, 'move_result': str(move_result), 'click_result': str(click_result)}
+
+result = asyncio.run(click())
+print(json.dumps(result))`;
+
+    const scriptBase64 = Buffer.from(pythonScript).toString('base64');
+    const writeCommand = `docker exec ${this.vncContainerId} sh -c 'echo "${scriptBase64}" | base64 -d > /tmp/click.py'`;
+    await this.execCommand(writeCommand);
+    
+    const execCommand = `docker exec ${this.vncContainerId} python3 /tmp/click.py`;
+    const { stdout } = await this.execCommand(execCommand);
+    return JSON.parse(stdout.trim());
+  }
+
+  // 移动鼠标到指定坐标
+  async mouseMove(x, y) {
+    this.log(`🖱️ Moving mouse to (${x}, ${y})`);
+    
+    if (!this.vncContainerId) {
+      await this.findVncContainer();
+      if (!this.vncContainerId) {
+        throw new Error('VNC容器未运行');
+      }
+    }
+
+    const pythonScript = `import asyncio
+import sys
+import json
+sys.path.append('/home/computeruse/computer_use_demo')
+from tools.computer import ComputerTool20241022
+
+async def mouse_move():
+    tool = ComputerTool20241022()
+    result = await tool(action='mouse_move', coordinate=[${x}, ${y}])
+    return {'success': True, 'result': str(result)}
+
+result = asyncio.run(mouse_move())
+print(json.dumps(result))`;
+
+    const scriptBase64 = Buffer.from(pythonScript).toString('base64');
+    const writeCommand = `docker exec ${this.vncContainerId} sh -c 'echo "${scriptBase64}" | base64 -d > /tmp/mouse_move.py'`;
+    await this.execCommand(writeCommand);
+    
+    const execCommand = `docker exec ${this.vncContainerId} python3 /tmp/mouse_move.py`;
+    const { stdout } = await this.execCommand(execCommand);
+    return JSON.parse(stdout.trim());
+  }
+
+  // 执行左键点击（在当前位置）
+  async leftClick() {
+    this.log('🖱️ Executing left click');
+    
+    if (!this.vncContainerId) {
+      await this.findVncContainer();
+      if (!this.vncContainerId) {
+        throw new Error('VNC容器未运行');
+      }
+    }
+
+    const pythonScript = `import asyncio
+import sys
+import json
+sys.path.append('/home/computeruse/computer_use_demo')
+from tools.computer import ComputerTool20241022
+
+async def left_click():
+    tool = ComputerTool20241022()
+    result = await tool(action='left_click')
+    return {'success': True, 'result': str(result)}
+
+result = asyncio.run(left_click())
+print(json.dumps(result))`;
+
+    const scriptBase64 = Buffer.from(pythonScript).toString('base64');
+    const writeCommand = `docker exec ${this.vncContainerId} sh -c 'echo "${scriptBase64}" | base64 -d > /tmp/left_click.py'`;
+    await this.execCommand(writeCommand);
+    
+    const execCommand = `docker exec ${this.vncContainerId} python3 /tmp/left_click.py`;
+    const { stdout } = await this.execCommand(execCommand);
+    return JSON.parse(stdout.trim());
+  }
+
+  // 执行右键点击（在当前位置）
+  async rightClick() {
+    this.log('🖱️ Executing right click');
+    
+    if (!this.vncContainerId) {
+      await this.findVncContainer();
+      if (!this.vncContainerId) {
+        throw new Error('VNC容器未运行');
+      }
+    }
+
+    const pythonScript = `import asyncio
+import sys
+import json
+sys.path.append('/home/computeruse/computer_use_demo')
+from tools.computer import ComputerTool20241022
+
+async def right_click():
+    tool = ComputerTool20241022()
+    result = await tool(action='right_click')
+    return {'success': True, 'result': str(result)}
+
+result = asyncio.run(right_click())
+print(json.dumps(result))`;
+
+    const scriptBase64 = Buffer.from(pythonScript).toString('base64');
+    const writeCommand = `docker exec ${this.vncContainerId} sh -c 'echo "${scriptBase64}" | base64 -d > /tmp/right_click.py'`;
+    await this.execCommand(writeCommand);
+    
+    const execCommand = `docker exec ${this.vncContainerId} python3 /tmp/right_click.py`;
+    const { stdout } = await this.execCommand(execCommand);
+    return JSON.parse(stdout.trim());
+  }
+
+  // 执行双击（在当前位置）
+  async doubleClick() {
+    this.log('🖱️ Executing double click');
+    
+    if (!this.vncContainerId) {
+      await this.findVncContainer();
+      if (!this.vncContainerId) {
+        throw new Error('VNC容器未运行');
+      }
+    }
+
+    const pythonScript = `import asyncio
+import sys
+import json
+sys.path.append('/home/computeruse/computer_use_demo')
+from tools.computer import ComputerTool20241022
+
+async def double_click():
+    tool = ComputerTool20241022()
+    result = await tool(action='double_click')
+    return {'success': True, 'result': str(result)}
+
+result = asyncio.run(double_click())
+print(json.dumps(result))`;
+
+    const scriptBase64 = Buffer.from(pythonScript).toString('base64');
+    const writeCommand = `docker exec ${this.vncContainerId} sh -c 'echo "${scriptBase64}" | base64 -d > /tmp/double_click.py'`;
+    await this.execCommand(writeCommand);
+    
+    const execCommand = `docker exec ${this.vncContainerId} python3 /tmp/double_click.py`;
+    const { stdout } = await this.execCommand(execCommand);
+    return JSON.parse(stdout.trim());
+  }
+
+  // 执行拖拽操作
+  async leftClickDrag(x, y) {
+    this.log(`🖱️ Executing drag to (${x}, ${y})`);
+    
+    if (!this.vncContainerId) {
+      await this.findVncContainer();
+      if (!this.vncContainerId) {
+        throw new Error('VNC容器未运行');
+      }
+    }
+
+    const pythonScript = `import asyncio
+import sys
+import json
+sys.path.append('/home/computeruse/computer_use_demo')
+from tools.computer import ComputerTool20241022
+
+async def drag():
+    tool = ComputerTool20241022()
+    result = await tool(action='left_click_drag', coordinate=[${x}, ${y}])
+    return {'success': True, 'result': str(result)}
+
+result = asyncio.run(drag())
+print(json.dumps(result))`;
+
+    const scriptBase64 = Buffer.from(pythonScript).toString('base64');
+    const writeCommand = `docker exec ${this.vncContainerId} sh -c 'echo "${scriptBase64}" | base64 -d > /tmp/drag.py'`;
+    await this.execCommand(writeCommand);
+    
+    const execCommand = `docker exec ${this.vncContainerId} python3 /tmp/drag.py`;
+    const { stdout } = await this.execCommand(execCommand);
+    return JSON.parse(stdout.trim());
+  }
+
+  // 获取当前鼠标位置
+  async getCursorPosition() {
+    this.log('🖱️ Getting cursor position');
+    
+    if (!this.vncContainerId) {
+      await this.findVncContainer();
+      if (!this.vncContainerId) {
+        throw new Error('VNC容器未运行');
+      }
+    }
+
+    const pythonScript = `import asyncio
+import sys
+import json
+sys.path.append('/home/computeruse/computer_use_demo')
+from tools.computer import ComputerTool20241022
+
+async def get_cursor():
+    tool = ComputerTool20241022()
+    result = await tool(action='screenshot')
+    # 注意：computer.py 可能没有直接的cursor action，需要通过其他方式获取
+    return {'success': True, 'note': 'cursor position not directly available'}
+
+result = asyncio.run(get_cursor())
+print(json.dumps(result))`;
+
+    const scriptBase64 = Buffer.from(pythonScript).toString('base64');
+    const writeCommand = `docker exec ${this.vncContainerId} sh -c 'echo "${scriptBase64}" | base64 -d > /tmp/cursor_pos.py'`;
+    await this.execCommand(writeCommand);
+    
+    const execCommand = `docker exec ${this.vncContainerId} python3 /tmp/cursor_pos.py`;
+    const { stdout } = await this.execCommand(execCommand);
     return JSON.parse(stdout.trim());
   }
 
@@ -169,6 +394,10 @@ print(json.dumps(result))`;
         case 'initialize':
           this.log('🔄 Initializing MCP server');
           return this.handleInitialize(request);
+        
+        case 'notifications/initialized':
+          this.log('📢 Handling initialized notification');
+          return this.handleInitializedNotification(request);
         
         case 'tools/list':
           this.log('📋 Listing available tools');
@@ -201,7 +430,7 @@ print(json.dumps(result))`;
       jsonrpc: '2.0',
       id: request.id,
       result: {
-        protocolVersion: '2024-11-05',
+        protocolVersion: '2025-06-18',
         capabilities: {
           tools: {}
         },
@@ -211,6 +440,12 @@ print(json.dumps(result))`;
         }
       }
     };
+  }
+
+  handleInitializedNotification(request) {
+    // 这是一个通知，不需要返回响应
+    this.log('✅ Client initialized notification received');
+    return null;
   }
 
   handleToolsList(request) {
@@ -238,6 +473,66 @@ print(json.dumps(result))`;
                 y: { type: 'number', description: 'Y坐标' }
               },
               required: ['x', 'y']
+            }
+          },
+          {
+            name: 'vnc_mouse_move',
+            description: '移动鼠标到指定坐标',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                x: { type: 'number', description: 'X坐标' },
+                y: { type: 'number', description: 'Y坐标' }
+              },
+              required: ['x', 'y']
+            }
+          },
+          {
+            name: 'vnc_left_click',
+            description: '执行鼠标左键点击（在当前位置）',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              required: []
+            }
+          },
+          {
+            name: 'vnc_right_click',
+            description: '执行鼠标右键点击（在当前位置）',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              required: []
+            }
+          },
+          {
+            name: 'vnc_double_click',
+            description: '执行鼠标双击（在当前位置）',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              required: []
+            }
+          },
+          {
+            name: 'vnc_drag',
+            description: '拖拽操作，从当前位置拖拽到目标位置',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                x: { type: 'number', description: '目标X坐标' },
+                y: { type: 'number', description: '目标Y坐标' }
+              },
+              required: ['x', 'y']
+            }
+          },
+          {
+            name: 'vnc_cursor_position',
+            description: '获取当前鼠标位置',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              required: []
             }
           }
         ]
@@ -276,7 +571,7 @@ print(json.dumps(result))`;
       case 'vnc_click':
         this.log(`🖱️ Executing vnc_click at (${args.x}, ${args.y})...`);
         const { x, y } = args;
-        const clickResult = await this.clickAt(x, y);
+        await this.clickAt(x, y);
         const clickResponse = {
           jsonrpc: '2.0',
           id: request.id,
@@ -291,6 +586,102 @@ print(json.dumps(result))`;
         };
         this.log('✅ vnc_click completed successfully');
         return clickResponse;
+
+      case 'vnc_mouse_move':
+        this.log(`🖱️ Executing vnc_mouse_move to (${args.x}, ${args.y})...`);
+        await this.mouseMove(args.x, args.y);
+        return {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: `鼠标移动到坐标 (${args.x}, ${args.y}) 完成`
+              }
+            ]
+          }
+        };
+
+      case 'vnc_left_click':
+        this.log('🖱️ Executing vnc_left_click...');
+        await this.leftClick();
+        return {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: '鼠标左键点击完成'
+              }
+            ]
+          }
+        };
+
+      case 'vnc_right_click':
+        this.log('🖱️ Executing vnc_right_click...');
+        await this.rightClick();
+        return {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: '鼠标右键点击完成'
+              }
+            ]
+          }
+        };
+
+      case 'vnc_double_click':
+        this.log('🖱️ Executing vnc_double_click...');
+        await this.doubleClick();
+        return {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: '鼠标双击完成'
+              }
+            ]
+          }
+        };
+
+      case 'vnc_drag':
+        this.log(`🖱️ Executing vnc_drag to (${args.x}, ${args.y})...`);
+        await this.leftClickDrag(args.x, args.y);
+        return {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: `拖拽到坐标 (${args.x}, ${args.y}) 完成`
+              }
+            ]
+          }
+        };
+
+      case 'vnc_cursor_position':
+        this.log('🖱️ Executing vnc_cursor_position...');
+        const posResult = await this.getCursorPosition();
+        return {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: `当前鼠标位置: ${JSON.stringify(posResult.position)}`
+              }
+            ]
+          }
+        };
 
       default:
         this.log(`❓ Unknown tool requested: ${name}`);
@@ -319,8 +710,12 @@ print(json.dumps(result))`;
           this.log('📋 Parsed request: ' + JSON.stringify(request, null, 2));
           
           const response = await this.handleRequest(request);
-          this.log('📤 Sending response: ' + JSON.stringify(response, null, 2));
-          console.log(JSON.stringify(response));
+          if (response !== null) {
+            this.log('📤 Sending response: ' + JSON.stringify(response, null, 2));
+            console.log(JSON.stringify(response));
+          } else {
+            this.log('📤 No response needed (notification)');
+          }
         } catch (error) {
           this.log('❌ Error processing request: ' + error);
           this.log('❌ Error stack: ' + error.stack);
