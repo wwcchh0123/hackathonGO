@@ -7,6 +7,7 @@ import { Message } from './components/MessageBubble'
 import { VncPanel } from '../../components/VncPanel'
 import { ServiceHealth } from '../../types/api'
 import { Session } from '../../types/session'
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
 
 interface ChatPageProps {
   command: string
@@ -62,9 +63,42 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   const [streamingSessionId, setStreamingSessionId] = useState<string | null>(null)
   const [isStreamingActive, setIsStreamingActive] = useState(false)
 
+  // 语音识别 Hook
+  const {
+    transcript,
+    state: voiceState,
+    error: voiceError,
+    isSupported: isVoiceSupported,
+    startListening,
+    stopListening,
+    resetTranscript
+  } = useSpeechRecognition({
+    lang: 'zh_cn', // 科大讯飞使用下划线格式
+    continuous: false, // 科大讯飞单次识别，不支持 continuous
+    interimResults: true
+  })
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // 处理语音识别结果
+  useEffect(() => {
+    console.log('📱 ChatPage - voiceState:', voiceState, 'transcript:', transcript);
+    // 持续更新输入框内容(包括临时结果)
+    if ((voiceState === 'listening' || voiceState === 'processing') && transcript) {
+      console.log('🎤 更新输入框文本:', transcript)
+      setInputText(transcript)
+    }
+  }, [voiceState, transcript, setInputText])
+
+  // 当识别停止后,清理状态
+  useEffect(() => {
+    if (voiceState === 'idle' && transcript) {
+      // 识别已停止,保持最终文本在输入框中
+      resetTranscript()
+    }
+  }, [voiceState, transcript, resetTranscript])
 
   // 流式事件处理现在移到了App.tsx中的父组件
   // 这里只需要处理本地状态
@@ -205,6 +239,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({
                 setInputText={setInputText}
                 onSendMessage={handleSendMessage}
                 isLoading={isLoading || isStreamingActive}
+                isListening={voiceState === 'listening'}
+                onStartVoice={startListening}
+                onStopVoice={stopListening}
+                voiceError={voiceError}
+                isVoiceSupported={isVoiceSupported}
               />
             </Box>
           </Grid>

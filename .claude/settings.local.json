@@ -1,21 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:www.anthropic.com)",
-      "WebSearch",
-      "WebFetch(domain:github.com)",
-      "WebFetch(domain:docs.anthropic.com)",
-      "WebFetch(domain:docs.claude.com)",
-      "Bash(gh issue create:*)",
-      "Bash(mkdir:*)",
-      "Bash(npm test:*)",
-      "Bash(npm install:*)",
-      "Bash(rm:*)",
-      "Bash(npx ts-node:*)",
-      "Bash(npx tsc:*)",
-      "Bash(node:*)",
-      "Bash(git add:*)",
-      "Bash(cp:*)"
+      "Bash(npm run build:*)",
+      "Read(//Users/jicarl/Downloads/iat-js-demo/**)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []
