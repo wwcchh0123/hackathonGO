@@ -14,6 +14,12 @@
 
 内置虚拟主机沙箱，让 AI 在安全隔离的环境中自由施展——测试脚本、部署服务、自动化实验，无需担心系统风险。想象力即边界，安全与创新并存。
 
+![](./assets/intro.png)
+
+## 更多演示视频
+
+- [通过 XGopilot 操作本地电脑,打开地图导航+播放 B 站视频](https://www.bilibili.com/video/BV1oTszz7EuP)
+
 ## 项目详情
 
 - 架构说明请参考：[架构设计文档](docs/ARCHITECTURE_DETAILED.md)
