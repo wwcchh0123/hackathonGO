@@ -4,7 +4,8 @@ export default {
   roots: ['<rootDir>/src', '<rootDir>/test'],
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
   },
   coverageDirectory: 'coverage',
   collectCoverageFrom: [
@@ -28,4 +29,7 @@ export default {
       }
     }],
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(react-markdown|remark-gfm|rehype-highlight|unist-util-visit|unist-util-is|unified|bail|is-plain-obj|trough|vfile|vfile-message|mdast-util-from-markdown|mdast-util-to-markdown|micromark|decode-named-character-reference|character-entities|mdast-util-to-string|mdast-util-gfm|mdast-util-find-and-replace|escape-string-regexp|hast-util-to-html|hast-util-sanitize|html-void-elements|property-information|space-separated-tokens|comma-separated-tokens|hast-util-whitespace)/)'
+  ],
 };

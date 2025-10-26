@@ -92,61 +92,15 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     interimResults: true
   })
 
+  // 记录上一次的语音状态，用于检测状态变化
+  const prevVoiceStateRef = useRef<typeof voiceState>('idle')
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // 处理语音识别结果
-  useEffect(() => {
-    console.log('📱 ChatPage - voiceState:', voiceState, 'transcript:', transcript);
-    // 持续更新输入框内容(包括临时结果)
-    if ((voiceState === 'listening' || voiceState === 'processing') && transcript) {
-      console.log('🎤 更新输入框文本:', transcript)
-      setInputText(transcript)
-    }
-  }, [voiceState, transcript, setInputText])
-
-  // 当识别停止后,清理状态
-  useEffect(() => {
-    if (voiceState === 'idle' && transcript) {
-      // 识别已停止,保持最终文本在输入框中
-      resetTranscript()
-    }
-  }, [voiceState, transcript, resetTranscript])
-
-  // 流式事件处理现在移到了App.tsx中的父组件
-  // 这里只需要处理本地状态
-  useEffect(() => {
-    if (!window.api?.onClaudeStream) return
-
-    const handleStreamEvent = (event: any, message: any) => {
-      if (message.sessionId !== streamingSessionId) return
-
-      switch (message.type) {
-        case 'stream-end':
-        case 'stream-error':
-          setIsStreamingActive(false)
-          setStreamingSessionId(null)
-          break
-      }
-    }
-
-    const unsubscribe = window.api.onClaudeStream(handleStreamEvent)
-    return unsubscribe
-  }, [streamingSessionId])
-
-  const handleNewSession = () => {
-    onNewSession()
-    setSidebarOpen(false)
-  }
-
-  const handleSessionSelect = (sessionId: string) => {
-    onSessionSelect(sessionId)
-    setSidebarOpen(false)
-  }
-
   // 直接处理消息发送，避免双重调用
-  const handleSendMessage = async () => {
+  const handleSendMessage = React.useCallback(async () => {
     if (!inputText.trim() || isLoading || isStreamingActive) return
 
     const userMessage = inputText.trim()
@@ -192,6 +146,67 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     } finally {
       setIsStreamingActive(false)
     }
+  }, [inputText, isLoading, isStreamingActive, addMessage, setInputText, command, baseArgs, cwd, envText])
+
+  // 处理语音识别结果
+  useEffect(() => {
+    console.log('📱 ChatPage - voiceState:', voiceState, 'transcript:', transcript);
+    // 持续更新输入框内容(包括临时结果)
+    if ((voiceState === 'listening' || voiceState === 'processing') && transcript) {
+      console.log('🎤 更新输入框文本:', transcript)
+      setInputText(transcript)
+    }
+  }, [voiceState, transcript, setInputText])
+  
+  // 当识别停止后,自动发送消息
+  useEffect(() => {
+    // 检测从 listening/processing 变为 idle 的状态转换
+    const wasListening = prevVoiceStateRef.current === 'listening' || prevVoiceStateRef.current === 'processing'
+    const nowIdle = voiceState === 'idle'
+    
+    if (wasListening && nowIdle && inputText.trim()) {
+      // 识别已停止且有文本内容，自动发送消息
+      console.log('🚀 语音识别结束，自动发送消息:', inputText)
+      resetTranscript()
+      // 使用 setTimeout 确保状态更新完成后再发送
+      setTimeout(() => {
+        handleSendMessage()
+      }, 100)
+    }
+    
+    // 更新上一次的状态
+    prevVoiceStateRef.current = voiceState
+  }, [voiceState, inputText, resetTranscript, handleSendMessage])
+
+  // 流式事件处理现在移到了App.tsx中的父组件
+  // 这里只需要处理本地状态
+  useEffect(() => {
+    if (!window.api?.onClaudeStream) return
+
+    const handleStreamEvent = (event: any, message: any) => {
+      if (message.sessionId !== streamingSessionId) return
+
+      switch (message.type) {
+        case 'stream-end':
+        case 'stream-error':
+          setIsStreamingActive(false)
+          setStreamingSessionId(null)
+          break
+      }
+    }
+
+    const unsubscribe = window.api.onClaudeStream(handleStreamEvent)
+    return unsubscribe
+  }, [streamingSessionId])
+
+  const handleNewSession = () => {
+    onNewSession()
+    setSidebarOpen(false)
+  }
+
+  const handleSessionSelect = (sessionId: string) => {
+    onSessionSelect(sessionId)
+    setSidebarOpen(false)
   }
 
   return (
