@@ -18,12 +18,15 @@ describe('XunfeiSpeechService', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
+    global.WebSocket = jest.fn() as any
+    ;(global.WebSocket as any).OPEN = 1
+
     mockWebSocket = {
       send: jest.fn(),
       close: jest.fn(),
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
-      readyState: WebSocket.OPEN
+      readyState: 1
     }
 
     mockScriptProcessor = {
@@ -51,7 +54,7 @@ describe('XunfeiSpeechService', () => {
       state: 'running'
     }
 
-    global.WebSocket = jest.fn(() => mockWebSocket) as any
+    ;(global.WebSocket as any).mockImplementation(() => mockWebSocket)
     global.AudioContext = jest.fn(() => mockAudioContext) as any
 
     Object.defineProperty(navigator, 'mediaDevices', {
