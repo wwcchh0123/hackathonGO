@@ -1,16 +1,22 @@
-# XGopilot for Desktop (Electron + React)
+# XGopilot for Desktop
 
-Desktop UI wrapper for XGopilot with MCP support, built using Electron, React, MUI, TypeScript, and Vite.
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
+[![npm Version](https://img.shields.io/badge/npm-v0.1.0-orange.svg)](package.json)
+[![Build Status](https://img.shields.io/badge/build-passing-success.svg)](https://github.com/CarlJi/hackathonGO/actions)
+[![codecov](https://codecov.io/gh/wwcchh0123/hackathonGO/branch/main/graph/badge.svg)](https://codecov.io/gh/wwcchh0123/hackathonGO)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+[![Electron](https://img.shields.io/badge/Electron-30-47848F.svg)](https://www.electronjs.org/)
+[![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://reactjs.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-## 功能特性
+能说会做的 AI 桌面 Agent, 重新定义人机协作。
 
-- ✅ 运行/停止可配置的 CLI（如 `XGopilot`）
-- ✅ 实时流式输出 stdout/stderr 到 UI
-- ✅ 向运行中的进程发送 stdin 输入
-- ✅ 通过原生对话框选择工作目录
-- ✅ 提供环境变量配置（每行一个 KEY=VALUE）
-- ✅ 在 localStorage 中持久化最后使用的配置
-- ✅ **语音识别输入**（基于科大讯飞 WebAPI）
+内置虚拟主机沙箱，让 AI 在安全隔离的环境中自由施展——测试脚本、部署服务、自动化实验，无需担心系统风险。想象力即边界，安全与创新并存。
+
+## 项目详情
+
+- 架构说明请参考：[架构设计文档](docs/ARCHITECTURE_DETAILED.md)
 
 ## 快速开始
 
@@ -25,6 +31,7 @@ npm install
 如果需要使用语音输入功能，需要配置科大讯飞 API：
 
 1. 复制环境变量配置文件：
+
 ```bash
 cp .env.example .env
 ```
@@ -32,6 +39,7 @@ cp .env.example .env
 2. 到 [科大讯飞控制台](https://console.xfyun.cn/) 注册并获取凭证
 
 3. 编辑 `.env` 文件，填入你的凭证：
+
 ```env
 VITE_XUNFEI_APP_ID=你的APPID
 VITE_XUNFEI_API_SECRET=你的APISecret
@@ -53,14 +61,6 @@ npm run dev:web
 npm run dev:electron
 ```
 
-## 使用说明
-
-1. 在 UI 中设置 CLI 命令（如 `XGopilot` 或 `npx XGopilot`）
-2. 根据需要添加 `--mcp` 参数
-3. 设置工作目录
-4. 点击运行
-5. 点击麦克风图标开始语音输入（需要先配置科大讯飞 API）
-
 ## 技术栈
 
 - **前端框架**：React 18
@@ -70,14 +70,3 @@ npm run dev:electron
 - **构建工具**：Vite 5
 - **开发语言**：TypeScript 5
 - **语音识别**：科大讯飞 WebAPI
-
-## 文档
-
-- [科大讯飞语音识别配置指南](docs/xunfei-setup-guide.md)
-- [项目编码规范](CLAUDE.md)
-
-## 注意事项
-
-- 本应用通过 Node 的 child_process 启动 CLI，需确保 CLI 已安装并在 PATH 中可访问
-- 语音识别功能需要配置科大讯飞 API 凭证
-- 生产环境打包（electron-builder/electron-forge）可后续添加
