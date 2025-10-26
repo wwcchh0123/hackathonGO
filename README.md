@@ -10,15 +10,21 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://reactjs.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-能说会做的 AI 桌面 Agent, 重新定义人机协作。
+**能听会做的智能桌面助手,让 AI 理解你的意图并付诸行动**
 
-内置虚拟主机沙箱，让 AI 在安全隔离的环境中自由施展——测试脚本、部署服务、自动化实验，无需担心系统风险。想象力即边界，安全与创新并存。
+- 🎯 **自然交互**: 通过语音或文字对话,像与同事沟通一样与 AI 协作
+- 🛡️ **安全可控**: 内置虚拟沙箱环境,让 AI 在隔离空间中执行任务,保护系统安全
+- 🚀 **真正实用**: 不只是聊天,而是能帮你完成实际工作——测试脚本、操作应用、自动化流程
+- 🔮 **持续进化**: 从桌面助手起步,向通用智能体方向演进
+
+---
 
 ![](./assets/intro.png)
 
 ## 演示视频
 
-- [通过 XGopilot 操作本地电脑,打开地图导航+播放 B 站视频](https://www.bilibili.com/video/BV1oTszz7EuP)
+- [通过 XGopilot 操作本地电脑，打开地图导航+播放 B 站视频](https://www.bilibili.com/video/BV1oTszz7EuP)
+- [通过 XGopilot 操作虚拟主机，文本编辑+查询天气](https://www.bilibili.com/video/BV1hAskzmECr)
 
 ## 项目详情
 
@@ -124,7 +130,7 @@ npm run dev
 ## 联系方式
 
 - 项目维护者: [@wwcchh0123](https://github.com/wwcchh0123)，[@minorcell](https://github.com/minorcell)，[@CarlJi](https://github.com/CarlJi)
-- Issue 反馈: [GitHub Issues](https://github.com/CarlJi/hackathonGO/issues)
+- Issue 反馈: [GitHub Issues](https://github.com/wwcchh0123/hackathonGO/issues)
 
 ---
 
