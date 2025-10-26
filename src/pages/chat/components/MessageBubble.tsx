@@ -1,5 +1,9 @@
 import React from 'react';
-import { Box, Paper, Typography, Card, CardMedia } from '@mui/material';
+import { Box, Paper, Typography, Card, CardMedia, IconButton, Tooltip } from '@mui/material';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import EditIcon from '@mui/icons-material/Edit'
+import { MarkdownContent } from '../../../components/MarkdownContent'
+import { MessageActions } from './MessageActions'
 import { Code, Image as ImageIcon, Build } from '@mui/icons-material';
 
 export interface Message {
@@ -22,6 +26,7 @@ export interface ToolResult {
 
 interface MessageBubbleProps {
   message: Message;
+  onPrefillInput?: (text: string) => void;
 }
 
 const renderImages = (images: string[]) => {
@@ -159,7 +164,7 @@ const renderToolResults = (toolResults: ToolResult[]) => {
   );
 };
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPrefillInput }) => {
   const isUser = message.type === 'user';
   const isSystem = message.type === 'system';
   
@@ -210,6 +215,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         <Box
           sx={{
             p: 2,
+            pt: 1,
+            pb: 6,
             bgcolor: isUser 
               ? '#CC785C' 
               : isSystem 
@@ -222,19 +229,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                 : '#1a1a1a',
             borderRadius: 2,
             border: isSystem ? '1px solid #fee' : 'none',
+            position: 'relative'
           }}
         >
-          <Typography
-            variant="body1"
-            sx={{
-              whiteSpace: 'pre-wrap',
-              fontFamily: isSystem ? 'SFMono-Regular, Consolas, monospace' : 'inherit',
-              fontSize: isSystem ? '13px' : '14px',
-              lineHeight: 1.5,
-            }}
-          >
-            {message.content}
-          </Typography>
+          <Box sx={{
+            '& code': {
+              fontFamily: 'SFMono-Regular, Consolas, monospace',
+              fontSize: '12px',
+              display: 'inline',
+              bgcolor: '#f6f8fa',
+              color: '#24292e',
+              borderRadius: '4px',
+              border: '1px solid #e1e4e8',
+              padding: '0.2em 0.4em'
+            }
+          }}>
+            <MarkdownContent content={message.content} />
+          </Box>
           <Typography
             variant="caption"
             sx={{
@@ -246,6 +257,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           >
             {message.timestamp.toLocaleTimeString()}
           </Typography>
+
+          {/* 左下角操作按钮 */}
+          <MessageActions 
+            content={message.content}
+            isUser={isUser}
+            onPrefillInput={onPrefillInput}
+          />
         </Box>
         
         {/* 渲染图片附件 */}

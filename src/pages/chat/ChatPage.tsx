@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Box, Grid } from '@mui/material'
+import { Box } from '@mui/material'
 import { ChatMessages } from './components/ChatMessages'
 import { ChatInput } from './components/ChatInput'
 import { SessionSidebar } from './components/SessionSidebar'
@@ -62,6 +62,20 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [streamingSessionId, setStreamingSessionId] = useState<string | null>(null)
   const [isStreamingActive, setIsStreamingActive] = useState(false)
+  const [showVnc, setShowVnc] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [splitPercent, setSplitPercent] = useState(42)
+  const [isDragging, setIsDragging] = useState(false)
+
+  const clamp = (val: number, min: number, max: number) => Math.min(Math.max(val, min), max)
+  const updateSplitFromClientX = (clientX: number) => {
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const relative = clientX - rect.left
+    const pct = (relative / rect.width) * 100
+    setSplitPercent(clamp(Math.round(pct), 25, 75))
+  }
 
   // 语音识别 Hook
   const {
@@ -198,66 +212,91 @@ export const ChatPage: React.FC<ChatPageProps> = ({
           height: '100%',
           ml: sidebarOpen ? '280px' : 0,
           transition: 'margin-left 0.3s ease',
-          overflow: 'hidden',
+          overflowX: 'auto',
+          overflowY: 'hidden',
           p: 2,
-          gap: 2
+          gap: 2,
+          flexWrap: 'nowrap',
+          position: 'relative',
+          userSelect: isDragging ? 'none' : 'auto'
         }}
+        ref={containerRef}
       >
-        <Grid container spacing={2} sx={{ height: '100%' }}>
-          {/* 聊天区域 - 40% */}
-          <Grid
-            item
-            xs={12}
-            md={5}
+        {/* 左侧聊天区域 */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            minHeight: 0,
+            minWidth: 0,
+            flex: showVnc ? `0 0 ${splitPercent}%` : '1 1 100%'
+          }}
+        >
+          <Box
             sx={{
+              flex: 1,
+              overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              height: '100%',
-              minHeight: 0
+              bgcolor: 'white',
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'grey.200',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}
           >
-            <Box
-              sx={{
-                flex: 1,
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
-                bgcolor: 'white',
-                borderRadius: 2,
-                border: '1px solid',
-                borderColor: 'grey.200',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-              }}
-            >
-              <ChatMessages
-                messages={messages}
-                messagesEndRef={messagesEndRef}
-              />
-              
-              <ChatInput
-                inputText={inputText}
-                setInputText={setInputText}
-                onSendMessage={handleSendMessage}
-                isLoading={isLoading || isStreamingActive}
-                isListening={voiceState === 'listening'}
-                onStartVoice={startListening}
-                onStopVoice={stopListening}
-                voiceError={voiceError}
-                isVoiceSupported={isVoiceSupported}
-              />
-            </Box>
-          </Grid>
+            <ChatMessages
+              messages={messages}
+              messagesEndRef={messagesEndRef}
+              onPrefillInput={(text) => setInputText(text)}
+            />
 
-          {/* VNC桌面区域 - 60% */}
-          <Grid
-            item
-            xs={12}
-            md={7}
+            <ChatInput
+              inputText={inputText}
+              setInputText={setInputText}
+              onSendMessage={handleSendMessage}
+              isLoading={isLoading || isStreamingActive}
+              isListening={voiceState === 'listening'}
+              onStartVoice={startListening}
+              onStopVoice={stopListening}
+              voiceError={voiceError}
+              isVoiceSupported={isVoiceSupported}
+              showVnc={showVnc}
+              onToggleVnc={() => setShowVnc(v => !v)}
+            />
+          </Box>
+        </Box>
+
+        {/* 可拖动分隔条 */}
+        {showVnc && (
+          <Box
+            onMouseDown={(e) => {
+              setIsDragging(true)
+              updateSplitFromClientX(e.clientX)
+            }}
+            sx={{
+              flex: '0 0 8px',
+              height: '100%',
+              bgcolor: 'grey.200',
+              borderLeft: '1px solid',
+              borderRight: '1px solid',
+              borderColor: 'grey.300',
+              cursor: 'col-resize'
+            }}
+          />
+        )}
+
+        {/* 右侧 VNC 桌面区域（仅在开启时显示），固定不换行 */}
+        {showVnc && (
+          <Box
             sx={{
               display: 'flex',
               flexDirection: 'column',
               height: '100%',
-              minHeight: 0
+              minHeight: 0,
+              minWidth: 0,
+              flex: '1 1 auto'
             }}
           >
             <VncPanel
@@ -267,8 +306,25 @@ export const ChatPage: React.FC<ChatPageProps> = ({
               resetVncState={resetVncState}
               addMessage={addMessage}
             />
-          </Grid>
-        </Grid>
+          </Box>
+        )}
+
+        {/* 拖动覆盖层，避免 iframe 抢占事件 */}
+        {isDragging && (
+          <Box
+            onMouseMove={(e) => updateSplitFromClientX(e.clientX)}
+            onMouseUp={() => setIsDragging(false)}
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 2,
+              cursor: 'col-resize'
+            }}
+          />
+        )}
       </Box>
     </>
   )

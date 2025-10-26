@@ -27,6 +27,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    minWidth: 900,
+    minHeight: 600,
     webPreferences: {
       preload: path.join(path.dirname(__filename), 'preload.js'),
       contextIsolation: true,
@@ -44,7 +46,7 @@ function createWindow() {
     console.log('Loading dev URL:', devUrl)
     mainWindow.loadURL(devUrl)
     // 开发模式下打开开发者工具
-    mainWindow.webContents.openDevTools()
+    // mainWindow.webContents.openDevTools()
   } else {
     const indexPath = path.join(process.cwd(), 'dist', 'index.html')
     mainWindow.loadFile(indexPath)
