@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { ThemeProvider, createTheme } from "@mui/material/styles"
 import { Box, CssBaseline } from "@mui/material"
 import { AppHeader } from "./components/shared"
@@ -226,9 +226,10 @@ export default function App() {
 
   // 监听Claude Code流式事件
   useEffect(() => {
-    if (!window.api?.onClaudeStream) return
+    const api = window.api as any
+    if (!api?.onClaudeStream) return
 
-    const handleStreamEvent = (event: any, message: any) => {
+    const handleStreamEvent = (_event: any, message: any) => {
       console.log('🎯 收到流式事件:', message)
 
       switch (message.type) {
@@ -258,7 +259,7 @@ export default function App() {
       }
     }
 
-    const unsubscribe = window.api.onClaudeStream(handleStreamEvent)
+    const unsubscribe = api.onClaudeStream(handleStreamEvent)
     return unsubscribe
   }, [streamingMessageId])
 
@@ -288,75 +289,6 @@ export default function App() {
     localStorage.setItem("config", JSON.stringify(cfg))
   }, [command, baseArgs, cwd, envText])
 
-  const handleSendMessage = async (streamingSessionId?: string) => {
-    if (!inputText.trim() || isLoading) return
-
-    // 确保有活动会话
-    let currentSessionId = activeSessionId
-    if (!currentSessionId) {
-      currentSessionId = createNewSession()
-    }
-
-    const userMessage = inputText.trim()
-    console.log("🔵 Sending message:", userMessage)
-    setIsLoading(true)
-
-    try {
-      // 检查API是否可用（在浏览器打开时不可用）
-      console.log(
-        "🔍 Checking window.api:",
-        !!window.api,
-        !!window.api?.sendMessage
-      )
-      if (!window.api || !window.api.sendMessage) {
-        console.log("❌ window.api not available")
-        addMessage(
-          "system",
-          "Electron API not available. Please run the desktop app via Electron: npm start (built) or npm run dev (dev)."
-        )
-        setIsLoading(false)
-        return
-      }
-
-      const env: Record<string, string> = {}
-      envText.split(/\n/).forEach((line) => {
-        const m = line.match(/^([^=]+)=(.*)$/)
-        if (m) env[m[1].trim()] = m[2].trim()
-      })
-
-      const options = {
-        command,
-        baseArgs,
-        message: userMessage,
-        cwd,
-        env,
-        sessionId: streamingSessionId // 传递流式会话ID
-      }
-
-      console.log("📤 Sending to IPC:", options)
-      const result = await window.api.sendMessage(options)
-      console.log("📥 Received from IPC:", result)
-
-      // 不再自动添加结果到聊天消息，因为结果会通过流式事件处理
-      // 只处理非JSON格式输出的兼容性情况
-      if (!baseArgs.includes("--output-format") || !baseArgs.includes("stream-json")) {
-        if (result.success && result.stdout) {
-          addMessage("assistant", result.stdout)
-        } else if (result.stderr) {
-          addMessage("system", `Error: ${result.stderr}`)
-        } else if (result.error) {
-          addMessage("system", `Error: ${result.error}`)
-        } else {
-          addMessage("system", "No response from Claude Code CLI")
-        }
-      }
-    } catch (error) {
-      console.log("💥 Frontend error:", error)
-      addMessage("system", `Failed to send message: ${error}`)
-    }
-
-    setIsLoading(false)
-  }
 
   const handlePickCwd = async () => {
     if (!window.api || !window.api.selectDir) {
