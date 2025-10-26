@@ -67,6 +67,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   const containerRef = useRef<HTMLDivElement>(null)
   const [splitPercent, setSplitPercent] = useState(42)
   const [isDragging, setIsDragging] = useState(false)
+  const [isStopping, setIsStopping] = useState(false)
 
   const clamp = (val: number, min: number, max: number) => Math.min(Math.max(val, min), max)
   const updateSplitFromClientX = (clientX: number) => {
@@ -99,6 +100,37 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // 停止当前任务
+  const handleStopTask = React.useCallback(async () => {
+    if (!streamingSessionId || !isStreamingActive) return
+
+    setIsStopping(true)
+    try {
+      console.log('🛑 Stopping task for session:', streamingSessionId)
+      
+      if (!window.api || !window.api.stopClaudeProcess) {
+        addMessage("system", "停止功能不可用，请检查 Electron API")
+        return
+      }
+
+      const result = await window.api.stopClaudeProcess(streamingSessionId)
+      
+      if (result.success) {
+        console.log('✅ Task stopped successfully')
+      } else {
+        console.error('❌ Failed to stop task:', result.error)
+        addMessage("system", `停止失败: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('💥 Error stopping task:', error)
+      addMessage("system", `停止任务时出错: ${error}`)
+    } finally {
+      setIsStopping(false)
+      setIsStreamingActive(false)
+      setStreamingSessionId(null)
+    }
+  }, [streamingSessionId, isStreamingActive, addMessage])
 
   // 直接处理消息发送，避免双重调用
   const handleSendMessage = React.useCallback(async () => {
@@ -246,8 +278,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({
       switch (message.type) {
         case 'stream-end':
         case 'stream-error':
+        case 'stream-stopped':
           setIsStreamingActive(false)
           setStreamingSessionId(null)
+          setIsStopping(false)
           break
       }
     }
@@ -336,6 +370,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({
               isVoiceSupported={isVoiceSupported}
               showVnc={showVnc}
               onToggleVnc={() => setShowVnc(v => !v)}
+              isTaskRunning={isStreamingActive}
+              onStopTask={handleStopTask}
+              isStopping={isStopping}
             />
           </Box>
         </Box>

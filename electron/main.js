@@ -17,6 +17,9 @@ const __filename = fileURLToPath(import.meta.url)
 let vncContainerId = null
 let vncStartupPromise = null
 
+// Claude进程管理
+const runningProcesses = new Map()
+
 // VNC Docker 镜像配置 - 从环境变量读取，支持自定义镜像
 const VNC_DOCKER_IMAGE = process.env.VNC_DOCKER_IMAGE || 'aslan-spock-register.qiniu.io/devops/anthropic-quickstarts:computer-use-demo-latest'
 
@@ -394,6 +397,9 @@ ipcMain.handle('send-message', async (_event, options) => {
       stdio: ['pipe', 'pipe', 'pipe']
     })
 
+    // 保存进程引用
+    runningProcesses.set(sessionId, childProcess)
+
     let stdout = ''
     let stderr = ''
     let isResolved = false
@@ -440,6 +446,9 @@ ipcMain.handle('send-message', async (_event, options) => {
       if (isResolved) return
       isResolved = true
       // 进程自然结束，无需清除超时
+      
+      // 清理进程引用
+      runningProcesses.delete(sessionId)
 
       console.log('✅ Process finished with exit code:', code)
 
@@ -469,6 +478,9 @@ ipcMain.handle('send-message', async (_event, options) => {
       if (isResolved) return
       isResolved = true
       // 进程错误，无需清除超时
+      
+      // 清理进程引用
+      runningProcesses.delete(sessionId)
 
       console.log('💥 Process error:', err)
 
@@ -495,6 +507,91 @@ ipcMain.handle('select-dir', async () => {
   const res = await dialog.showOpenDialog({ properties: ['openDirectory'] })
   if (res.canceled || res.filePaths.length === 0) return null
   return res.filePaths[0]
+})
+
+ipcMain.handle('stop-claude-process', async (_event, sessionId) => {
+  console.log('=== IPC stop-claude-process received ===')
+  console.log('SessionId:', sessionId)
+
+  if (!sessionId) {
+    return { success: false, error: 'SessionId is required' }
+  }
+
+  const childProcess = runningProcesses.get(sessionId)
+  
+  if (!childProcess) {
+    console.log('❌ No process found for session:', sessionId)
+    return { success: false, error: 'No running process found for this session' }
+  }
+
+  try {
+    console.log('🛑 Attempting to stop process for session:', sessionId)
+    
+    // 发送停止信号到前端
+    sendStreamUpdate(sessionId, {
+      type: 'stream-data',
+      data: {
+        stage: 'stopping',
+        content: '🛑 正在停止任务...'
+      }
+    })
+
+    // 尝试优雅终止
+    childProcess.kill('SIGTERM')
+    
+    // 设置超时强制终止
+    const killTimeout = setTimeout(() => {
+      if (runningProcesses.has(sessionId)) {
+        console.log('⚠️ SIGTERM超时，强制终止进程')
+        childProcess.kill('SIGKILL')
+      }
+    }, 5000)
+
+    // 等待进程结束
+    await new Promise((resolve) => {
+      const checkInterval = setInterval(() => {
+        if (!runningProcesses.has(sessionId)) {
+          clearInterval(checkInterval)
+          clearTimeout(killTimeout)
+          resolve()
+        }
+      }, 100)
+      
+      // 最多等待6秒
+      setTimeout(() => {
+        clearInterval(checkInterval)
+        clearTimeout(killTimeout)
+        resolve()
+      }, 6000)
+    })
+
+    // 发送停止完成信号
+    sendStreamUpdate(sessionId, {
+      type: 'stream-stopped',
+      data: {
+        stage: 'stopped',
+        content: '✋ 任务已被用户手动停止',
+        success: true
+      }
+    })
+
+    console.log('✅ Process stopped successfully')
+    return { success: true }
+  } catch (error) {
+    console.error('❌ Failed to stop process:', error)
+    
+    // 发送错误信号
+    sendStreamUpdate(sessionId, {
+      type: 'stream-error',
+      data: {
+        stage: 'error',
+        content: `❌ 停止失败: ${error.message}`,
+        error: String(error)
+      }
+    })
+    
+    return { success: false, error: String(error) }
+  }
 })
 
 // ========== VNC容器管理功能 ==========

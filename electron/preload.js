@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('api', {
   // 现有API
   sendMessage: (options) => ipcRenderer.invoke('send-message', options),
   selectDir: () => ipcRenderer.invoke('select-dir'),
+  stopClaudeProcess: (sessionId) => ipcRenderer.invoke('stop-claude-process', sessionId),
   
   // 会话持久化API（文件存储）
   sessions: {

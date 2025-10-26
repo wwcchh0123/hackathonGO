@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Paper, TextField, IconButton, Tooltip, Box, Typography, Switch, FormControlLabel } from '@mui/material';
-import { Send as SendIcon, Mic as MicIcon, MicOff as MicOffIcon } from '@mui/icons-material';
+import { Send as SendIcon, Mic as MicIcon, MicOff as MicOffIcon, Stop as StopIcon } from '@mui/icons-material';
 
 interface ChatInputProps {
   inputText: string;
@@ -16,6 +16,10 @@ interface ChatInputProps {
   // 虚拟电脑开关
   showVnc?: boolean;
   onToggleVnc?: () => void;
+  // 任务停止相关
+  isTaskRunning?: boolean;
+  onStopTask?: () => void;
+  isStopping?: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -30,6 +34,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isVoiceSupported = false,
   showVnc,
   onToggleVnc,
+  isTaskRunning = false,
+  onStopTask,
+  isStopping = false,
 }) => {
   // 当有语音错误时显示提示
   useEffect(() => {
@@ -181,26 +188,51 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </Tooltip>
         )}
 
-        {/* 发送按钮 */}
-        <Tooltip title="发送消息 (Enter)">
-          <IconButton
-            onClick={onSendMessage}
-            disabled={!inputText.trim() || isLoading || isListening}
-            sx={{
-              bgcolor: '#CC785C',
-              color: 'white',
-              width: 40,
-              height: 40,
-              '&:hover': { bgcolor: '#B5694A' },
-              '&:disabled': {
-                bgcolor: 'grey.300',
-                color: 'grey.500'
-              }
-            }}
-          >
-            <SendIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        {/* 停止按钮（仅在任务运行时显示） */}
+        {isTaskRunning && (
+          <Tooltip title={isStopping ? "正在停止..." : "停止当前任务"}>
+            <IconButton
+              onClick={onStopTask}
+              disabled={isStopping}
+              sx={{
+                bgcolor: 'error.main',
+                color: 'white',
+                width: 40,
+                height: 40,
+                '&:hover': { bgcolor: 'error.dark' },
+                '&:disabled': {
+                  bgcolor: 'grey.300',
+                  color: 'grey.500'
+                }
+              }}
+            >
+              <StopIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+
+        {/* 发送按钮（仅在任务未运行时显示） */}
+        {!isTaskRunning && (
+          <Tooltip title="发送消息 (Enter)">
+            <IconButton
+              onClick={onSendMessage}
+              disabled={!inputText.trim() || isLoading || isListening}
+              sx={{
+                bgcolor: '#CC785C',
+                color: 'white',
+                width: 40,
+                height: 40,
+                '&:hover': { bgcolor: '#B5694A' },
+                '&:disabled': {
+                  bgcolor: 'grey.300',
+                  color: 'grey.500'
+                }
+              }}
+            >
+              <SendIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
 
       {/* 添加脉冲动画 */}
