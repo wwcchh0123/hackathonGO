@@ -3,6 +3,7 @@ export default {
   testEnvironment: 'jsdom',
   roots: ['<rootDir>/src', '<rootDir>/test'],
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
+  setupFiles: ['<rootDir>/test/setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
@@ -26,6 +27,9 @@ export default {
     '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: {
         esModuleInterop: true,
+      },
+      diagnostics: {
+        ignoreCodes: ['TS1343']
       }
     }],
   },
