@@ -283,6 +283,44 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     setSidebarOpen(false)
   }
 
+  // 处理虚拟电脑开关切换（异步非阻塞）
+  const handleToggleVnc = () => {
+    const willShow = !showVnc
+
+    // 立即切换显示状态，不等待后台操作
+    setShowVnc(willShow)
+
+    // 如果要关闭VNC面板，异步检查并停止容器（不阻塞UI）
+    if (!willShow) {
+      // 使用Promise立即返回，后台异步执行
+      (async () => {
+        try {
+          if (window.api?.vnc?.status) {
+            const vncStatus = await window.api.vnc.status()
+
+            // 如果容器正在运行，异步停止它
+            if (vncStatus.running && window.api?.vnc?.stop) {
+              console.log('🛑 关闭虚拟电脑面板，后台停止VNC容器:', vncStatus.containerId)
+              addMessage("system", "正在后台停止VNC桌面环境...")
+
+              const result = await window.api.vnc.stop()
+
+              if (result.success) {
+                resetVncState()
+                addMessage("system", "VNC桌面环境已停止")
+              } else {
+                addMessage("system", `VNC停止失败: ${result.error}`)
+              }
+            }
+          }
+        } catch (error) {
+          console.error('⚠️ 停止VNC容器时出错:', error)
+          addMessage("system", `停止VNC容器时出错: ${error}`)
+        }
+      })() // 立即执行异步函数
+    }
+  }
+
   return (
     <>
       <SessionSidebar
@@ -352,7 +390,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
               voiceError={voiceError}
               isVoiceSupported={isVoiceSupported}
               showVnc={showVnc}
-              onToggleVnc={() => setShowVnc(v => !v)}
+              onToggleVnc={handleToggleVnc}
             />
           </Box>
         </Box>
