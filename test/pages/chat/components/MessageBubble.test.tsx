@@ -25,8 +25,7 @@ describe('MessageBubble', () => {
   it('renders assistant message with assistant badge', () => {
     render(<MessageBubble message={{ ...baseMessage, type: 'assistant' } as any} />)
     expect(screen.getByText('测试内容')).toBeInTheDocument()
-    // 通过图片的 alt 文本断言助手图标是否渲染
-    expect(screen.getByAltText('Assistant')).toBeInTheDocument()
+    expect(screen.getByText('C')).toBeInTheDocument()
   })
 
   it('renders system message with exclamation badge', () => {
@@ -41,3 +40,4 @@ describe('MessageBubble', () => {
     expect(screen.getAllByRole('img').length).toBeGreaterThan(0)
   })
 })
+

@@ -1,7 +1,6 @@
 import React from 'react';
-import { Box, Typography, Card, CardMedia, keyframes } from '@mui/material';
+import { Box, Typography, Card, CardMedia } from '@mui/material';
 import { MarkdownContent } from '../../../components/MarkdownContent'
-import appIcon from '../../../assets/icon.png'
 
 export interface Message {
   id: string;
@@ -10,7 +9,6 @@ export interface Message {
   timestamp: Date;
   images?: string[];
   toolResults?: ToolResult[];
-  isExecuting?: boolean; // 标记消息是否正在执行中
 }
 
 export interface ToolResult {
@@ -26,18 +24,6 @@ interface MessageBubbleProps {
   message: Message;
   onPrefillInput?: (text: string) => void;
 }
-
-// 边框脉冲动画 - 表示正在执行
-const borderPulse = keyframes`
-  0%, 100% {
-    border-color: #CC785C;
-    box-shadow: 0 0 0 0 rgba(204, 120, 92, 0.4);
-  }
-  50% {
-    border-color: #E89A7B;
-    box-shadow: 0 0 0 4px rgba(204, 120, 92, 0.2);
-  }
-`;
 
 const renderImages = (images: string[]) => {
   if (!images || images.length === 0) return null;
@@ -66,8 +52,7 @@ const renderImages = (images: string[]) => {
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPrefillInput }) => {
   const isUser = message.type === 'user';
   const isSystem = message.type === 'system';
-  const isExecuting = message.isExecuting || false;
-
+  
   return (
     <Box
       sx={{
@@ -84,41 +69,27 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPrefill
             width: 32,
             height: 32,
             borderRadius: '50%',
-            bgcolor: isSystem ? '#f5f5f5' : 'transparent',
+            bgcolor: isSystem ? '#f5f5f5' : '#CC785C',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            mt: 0.5,
-            overflow: 'hidden'
+            mt: 0.5
           }}
         >
-          {isSystem ? (
-            <Typography
-              variant="body2"
-              sx={{
-                color: '#666',
-                fontWeight: 600,
-                fontSize: '12px'
-              }}
-            >
-              !
-            </Typography>
-          ) : (
-            <Box
-              component="img"
-              src={appIcon}
-              alt="Assistant"
-              sx={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover'
-              }}
-            />
-          )}
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: isSystem ? '#666' : 'white', 
+              fontWeight: 600, 
+              fontSize: '12px' 
+            }}
+          >
+            {isSystem ? '!' : 'C'}
+          </Typography>
         </Box>
       )}
-
+      
       <Box
         sx={{
           maxWidth: '70%',
@@ -130,21 +101,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPrefill
           sx={{
             px: 1.5,
             py: 0,
-            bgcolor: isUser
-              ? '#CC785C'
-              : isSystem
+            bgcolor: isUser 
+              ? '#CC785C' 
+              : isSystem 
                 ? '#f8f9fa'
                 : '#f5f5f5',
-            color: isUser
-              ? 'white'
-              : isSystem
+            color: isUser 
+              ? 'white' 
+              : isSystem 
                 ? '#e74c3c'
                 : '#1a1a1a',
             borderRadius: 2,
-            // 如果正在执行，添加边框和动画效果
-            border: isExecuting ? '2px solid #CC785C' : 'none',
-            animation: isExecuting ? `${borderPulse} 1.5s ease-in-out infinite` : 'none',
-            transition: 'all 0.3s ease',
+            border: 'none',
           }}
         >
           <Box sx={{
@@ -162,11 +130,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPrefill
             <MarkdownContent content={message.content} />
           </Box>
         </Box>
-
+        
         {/* 渲染图片附件 */}
         {renderImages(message.images || [])}
       </Box>
-
+      
       {isUser && (
         <Box
           sx={{
@@ -181,12 +149,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPrefill
             mt: 0.5
           }}
         >
-          <Typography
-            variant="body2"
-            sx={{
-              color: '#666',
-              fontWeight: 600,
-              fontSize: '12px'
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: '#666', 
+              fontWeight: 600, 
+              fontSize: '12px' 
             }}
           >
             U
