@@ -15,7 +15,8 @@ import {
 import {
   Close as CloseIcon,
   Add as AddIcon,
-  Chat as ChatIcon
+  Chat as ChatIcon,
+  DeleteOutline as DeleteOutlineIcon
 } from '@mui/icons-material'
 import { Session } from '../../../types/session'
 
@@ -26,6 +27,7 @@ interface SessionSidebarProps {
   activeSessionId: string | null
   onSessionSelect: (sessionId: string) => void
   onNewSession: () => void
+  onDeleteSession?: (sessionId: string) => void
 }
 
 const SIDEBAR_WIDTH = 280
@@ -36,7 +38,8 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
   sessions,
   activeSessionId,
   onSessionSelect,
-  onNewSession
+  onNewSession,
+  onDeleteSession
 }) => {
   const theme = useTheme()
 
@@ -136,13 +139,32 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
           ) : (
             <List sx={{ p: 0 }}>
               {sessions.map((session) => (
-                <ListItem key={session.id} disablePadding>
+                <ListItem key={session.id} disablePadding secondaryAction={
+                  onDeleteSession ? (
+                    <IconButton
+                      edge="end"
+                      aria-label="delete"
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDeleteSession?.(session.id)
+                      }}
+                      sx={{
+                        color: 'grey.600',
+                        '&:hover': { color: 'error.main' }
+                      }}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  ) : undefined
+                }>
                   <ListItemButton
                     onClick={() => onSessionSelect(session.id)}
                     selected={activeSessionId === session.id}
                     sx={{
                       py: 1.5,
-                      px: 2,
+                      pl: 2,
+                      pr: 1,
                       '&.Mui-selected': {
                         bgcolor: theme.palette.primary.main + '20',
                         borderRight: `3px solid ${theme.palette.primary.main}`,

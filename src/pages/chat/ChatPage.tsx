@@ -39,6 +39,7 @@ interface ChatPageProps {
   activeSessionId: string | null
   onNewSession: () => void
   onSessionSelect: (sessionId: string) => void
+  onDeleteSession: (sessionId: string) => void
   registerStreamRequest: (requestSessionId: string, chatSessionId: string) => void
 }
 
@@ -62,6 +63,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
   activeSessionId,
   onNewSession,
   onSessionSelect,
+  onDeleteSession,
   registerStreamRequest
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -331,6 +333,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({
     setSidebarOpen(false)
   }
 
+  const handleSessionDelete = (sessionId: string) => {
+    onDeleteSession(sessionId)
+  }
+
   // 处理虚拟电脑开关切换（异步非阻塞）
   const handleToggleVnc = () => {
     const willShow = !showVnc
@@ -378,6 +384,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
         activeSessionId={activeSessionId}
         onSessionSelect={handleSessionSelect}
         onNewSession={handleNewSession}
+        onDeleteSession={handleSessionDelete}
       />
       
       <Box
