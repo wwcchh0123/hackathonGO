@@ -5,8 +5,7 @@ export default {
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-    '\\.(png|jpg|jpeg|gif|svg)$': '<rootDir>/test/__mocks__/fileMock.js'
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
   },
   coverageDirectory: 'coverage',
   collectCoverageFrom: [

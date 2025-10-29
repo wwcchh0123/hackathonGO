@@ -31,8 +31,7 @@ describe('AppHeader', () => {
         />
       )
 
-      // 通过图片的 alt 文本来断言图标是否渲染
-      expect(screen.getByAltText('App Icon')).toBeInTheDocument()
+      expect(screen.getByText('C')).toBeInTheDocument()
     })
 
     it('应该在聊天页面渲染设置按钮', () => {
