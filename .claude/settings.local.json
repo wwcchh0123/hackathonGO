@@ -9,7 +9,8 @@
       "Bash(npx electron:*)",
       "Bash(sips:*)",
       "Bash(git diff:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

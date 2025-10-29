@@ -264,10 +264,33 @@ export default function App() {
             // 标记本会话已经收到过响应内容
             currentState.sawResponse = true
             sessionStreamStateRef.current.set(requestSessionId, currentState)
+
+            // 先清除所有消息的执行状态，然后添加新消息
+            setMessages((prev) => {
+              const cleared = prev.map(msg => ({ ...msg, isExecuting: false }))
+              if (targetChatSessionId) {
+                updateSessionMessages(targetChatSessionId, cleared)
+              }
+              return cleared
+            })
+
             addMessageToTargetSession("assistant", content)
           } else if (stage === "tool") {
-            const toolName = metadata.toolName || "未知工具"
-            addMessageToTargetSession("assistant", `我将调用 ${toolName} 工具`)
+            // 工具调用时不添加消息，改为标记最后一条assistant消息为执行中状态
+            setMessages((prev) => {
+              const updated = [...prev]
+              // 找到最后一条assistant消息，标记为执行中
+              for (let i = updated.length - 1; i >= 0; i--) {
+                if (updated[i].type === 'assistant') {
+                  updated[i] = { ...updated[i], isExecuting: true }
+                  break
+                }
+              }
+              if (targetChatSessionId) {
+                updateSessionMessages(targetChatSessionId, updated)
+              }
+              return updated
+            })
           } else if (stage === "warning" || stage === "error") {
             const details = rawOutput ? `\n${rawOutput}` : ""
             addMessageToTargetSession("assistant", `${content}${details}`)
@@ -281,6 +304,15 @@ export default function App() {
         }
 
         case "stream-end":
+          // 移除所有消息的执行状态标记
+          setMessages((prev) => {
+            const updated = prev.map(msg => ({ ...msg, isExecuting: false }))
+            if (targetChatSessionId) {
+              updateSessionMessages(targetChatSessionId, updated)
+            }
+            return updated
+          })
+
           if (message.data?.terminated) {
             // 用户主动终止的情况
             addMessage("assistant", message.data.content || "✅ 任务已停止")
@@ -303,6 +335,15 @@ export default function App() {
           break
 
         case "stream-error":
+          // 移除所有消息的执行状态标记
+          setMessages((prev) => {
+            const updated = prev.map(msg => ({ ...msg, isExecuting: false }))
+            if (targetChatSessionId) {
+              updateSessionMessages(targetChatSessionId, updated)
+            }
+            return updated
+          })
+
           addMessageToTargetSession(
             "assistant",
             `❌ 执行错误: ${message.data?.content || "未知错误"}`
