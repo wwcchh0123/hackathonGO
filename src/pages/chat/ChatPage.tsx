@@ -423,8 +423,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
               flexDirection: 'column',
               bgcolor: 'white',
               borderRadius: 2,
-              border: '1px solid',
-              borderColor: 'grey.200',
+              border: 'none',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}
           >
@@ -462,10 +461,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
             sx={{
               flex: '0 0 8px',
               height: '100%',
-              bgcolor: 'grey.200',
-              borderLeft: '1px solid',
-              borderRight: '1px solid',
-              borderColor: 'grey.300',
+              bgcolor: 'transparent',
               cursor: 'col-resize'
             }}
           />

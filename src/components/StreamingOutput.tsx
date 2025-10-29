@@ -266,8 +266,7 @@ export const StreamingOutput: React.FC<StreamingOutputProps> = ({
       sx={{
         mb: 2,
         overflow: 'hidden',
-        border: '1px solid',
-        borderColor: hasError ? 'error.main' : isCompleted ? 'success.main' : 'primary.main'
+        border: 'none'
       }}
     >
       {/* 头部状态栏 */}
@@ -328,13 +327,12 @@ export const StreamingOutput: React.FC<StreamingOutputProps> = ({
               <Typography
                 variant="body2"
                 sx={{
-                  fontFamily: 'monospace',
+                  fontFamily: 'inherit',
                   bgcolor: 'white',
                   p: 1.5,
                   borderRadius: 1,
                   fontSize: '0.75rem',
-                  border: '1px solid',
-                  borderColor: 'grey.300',
+                  border: 'none',
                   color: 'grey.800'
                 }}
               >
@@ -414,7 +412,7 @@ export const StreamingOutput: React.FC<StreamingOutputProps> = ({
                           fontSize: '0.65rem',
                           bgcolor: `${getLogColor(log)}30`,
                           color: getLogColor(log),
-                          border: `1px solid ${getLogColor(log)}60`,
+                          border: 'none',
                           ml: 'auto'
                         }}
                       />
@@ -422,19 +420,19 @@ export const StreamingOutput: React.FC<StreamingOutputProps> = ({
                   </Box>
 
                   {/* 主要内容 */}
-                  <Typography
-                    component="div"
-                    sx={{
-                      color: 'grey.800',
-                      fontSize: '0.9rem',
-                      fontFamily: '"Fira Code", "JetBrains Mono", "Monaco", monospace',
-                      lineHeight: 1.6,
-                      wordBreak: 'break-word',
-                      whiteSpace: 'pre-wrap'
-                    }}
-                  >
-                    {log.content.replace(/^[🔧💬❌✅⚠️🤔📍⚡💭🧠⚙️🔨🧪] /, '')}
-                  </Typography>
+                    <Typography
+                      component="div"
+                      sx={{
+                        color: 'grey.800',
+                        fontSize: '0.9rem',
+                        fontFamily: 'inherit',
+                        lineHeight: 1.6,
+                        wordBreak: 'break-word',
+                        whiteSpace: 'pre-wrap'
+                      }}
+                    >
+                      {log.content.replace(/^[🔧💬❌✅⚠️🤔📍⚡💭🧠⚙️🔨🧪] /, '')}
+                    </Typography>
 
                   {/* 原始输出（代码块） */}
                   {log.rawOutput &&
@@ -445,8 +443,7 @@ export const StreamingOutput: React.FC<StreamingOutputProps> = ({
                         p: 1.5,
                         bgcolor: 'grey.100',
                         borderRadius: 1,
-                        border: '1px solid',
-                        borderColor: 'grey.300'
+                        border: 'none'
                       }}
                     >
                       <Typography
@@ -454,7 +451,7 @@ export const StreamingOutput: React.FC<StreamingOutputProps> = ({
                         sx={{
                           color: 'grey.700',
                           fontSize: '0.75rem',
-                          fontFamily: '"Fira Code", "JetBrains Mono", "Monaco", monospace',
+                          fontFamily: 'inherit',
                           lineHeight: 1.6,
                           whiteSpace: 'pre-wrap',
                           maxHeight: '200px',

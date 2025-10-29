@@ -76,7 +76,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
         '& .MuiDrawer-paper': {
           width: SIDEBAR_WIDTH,
           boxSizing: 'border-box',
-          borderRight: `1px solid ${theme.palette.divider}`,
+          borderRight: 'none',
           bgcolor: '#fafafa'
         },
       }}
@@ -93,7 +93,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          borderBottom: 'none',
           bgcolor: 'white'
         }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>

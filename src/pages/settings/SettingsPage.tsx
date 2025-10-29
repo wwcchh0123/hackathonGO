@@ -45,9 +45,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       {/* Header */}
       <Box
         sx={{
-          bgcolor: "white",
-          borderBottom: "1px solid",
-          borderColor: "grey.200",
+          bgcolor: 'white',
+          borderBottom: 'none',
           py: 2,
         }}
       >
@@ -72,8 +71,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             sx={{
               p: 3,
               borderRadius: 2,
-              border: "1px solid",
-              borderColor: "grey.200",
+              border: 'none',
             }}
           >
             <Typography
@@ -91,11 +89,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 fullWidth
                 variant="outlined"
                 sx={{
-                  "& .MuiOutlinedInput-root": {
-                    "&:hover fieldset": { borderColor: "#CC785C" },
-                    "&.Mui-focused fieldset": { borderColor: "#CC785C" },
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': { borderWidth: 0 },
                   },
-                  "& .MuiInputLabel-root.Mui-focused": { color: "#CC785C" },
+                  '& .MuiInputLabel-root.Mui-focused': { color: '#CC785C' },
                 }}
               />
               <TextField
@@ -111,11 +108,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 variant="outlined"
                 helperText="Arguments applied before your message"
                 sx={{
-                  "& .MuiOutlinedInput-root": {
-                    "&:hover fieldset": { borderColor: "#CC785C" },
-                    "&.Mui-focused fieldset": { borderColor: "#CC785C" },
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': { borderWidth: 0 },
                   },
-                  "& .MuiInputLabel-root.Mui-focused": { color: "#CC785C" },
+                  '& .MuiInputLabel-root.Mui-focused': { color: '#CC785C' },
                 }}
               />
             </Stack>
@@ -127,8 +123,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             sx={{
               p: 3,
               borderRadius: 2,
-              border: "1px solid",
-              borderColor: "grey.200",
+              border: 'none',
             }}
           >
             <Typography
@@ -151,9 +146,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     variant="outlined"
                     size="small"
                     sx={{
-                      "& .MuiOutlinedInput-root": {
-                        "&:hover fieldset": { borderColor: "#CC785C" },
-                        "&.Mui-focused fieldset": { borderColor: "#CC785C" },
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': { borderWidth: 0 },
                       },
                     }}
                   />
@@ -162,10 +156,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     variant="outlined"
                     startIcon={<FolderOpenIcon />}
                     sx={{
-                      borderColor: "#CC785C",
+                      borderColor: 'transparent',
                       color: "#CC785C",
                       "&:hover": {
-                        borderColor: "#B5694A",
+                        borderColor: 'transparent',
                         bgcolor: "#CC785C0A",
                       },
                     }}
@@ -188,9 +182,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   rows={4}
                   variant="outlined"
                   sx={{
-                    "& .MuiOutlinedInput-root": {
-                      "&:hover fieldset": { borderColor: "#CC785C" },
-                      "&.Mui-focused fieldset": { borderColor: "#CC785C" },
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': { borderWidth: 0 },
                     },
                   }}
                 />
@@ -204,8 +197,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             sx={{
               p: 3,
               borderRadius: 2,
-              border: "1px solid",
-              borderColor: "grey.200",
+              border: 'none',
             }}
           >
             <Typography
