@@ -31,10 +31,8 @@ const VNC_PORTS = {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 900,
-    minHeight: 600,
+    width: 900,
+    height: 700,
     webPreferences: {
       preload: path.join(path.dirname(__filename), 'preload.js'),
       contextIsolation: true,
@@ -52,7 +50,7 @@ function createWindow() {
     console.log('Loading dev URL:', devUrl)
     mainWindow.loadURL(devUrl)
     // 开发模式下打开开发者工具
-    mainWindow.webContents.openDevTools()
+    // mainWindow.webContents.openDevTools()
   } else {
     const indexPath = path.join(process.cwd(), 'dist', 'index.html')
     mainWindow.loadFile(indexPath)
@@ -429,7 +427,7 @@ ipcMain.handle('send-message', async (_event, options) => {
     childProcess.on('close', (code, signal) => {
       if (isResolved) return
       isResolved = true
-      
+
       // 从管理Map中移除进程
       runningProcesses.delete(sessionId)
 
@@ -438,7 +436,7 @@ ipcMain.handle('send-message', async (_event, options) => {
       // 根据信号判断是否为用户终止
       const wasTerminated = signal === 'SIGTERM' || signal === 'SIGKILL'
       let stage, content
-      
+
       if (wasTerminated) {
         stage = 'terminated'
         content = '⏹️ 任务已被用户停止'
@@ -479,7 +477,7 @@ ipcMain.handle('send-message', async (_event, options) => {
     childProcess.on('error', (err) => {
       if (isResolved) return
       isResolved = true
-      
+
       // 从管理Map中移除进程
       runningProcesses.delete(sessionId)
 
@@ -525,7 +523,7 @@ ipcMain.handle('terminate-session', async (_event, sessionId) => {
 
   try {
     console.log(`🛑 Terminating process for session ${sessionId} (running for ${duration}ms)`)
-    
+
     // 发送终止通知
     sendStreamUpdate(sessionId, {
       type: 'stream-data',
@@ -538,7 +536,7 @@ ipcMain.handle('terminate-session', async (_event, sessionId) => {
 
     // 优雅终止：先发送 SIGTERM
     childProcess.kill('SIGTERM')
-    
+
     // 设置强制终止的超时机制（5秒后强制 SIGKILL）
     const forceKillTimeout = setTimeout(() => {
       if (runningProcesses.has(sessionId)) {
@@ -550,7 +548,7 @@ ipcMain.handle('terminate-session', async (_event, sessionId) => {
     // 进程结束时清除超时并发送终止完成消息
     childProcess.on('exit', (code, signal) => {
       clearTimeout(forceKillTimeout)
-      
+
       // 发送终止完成消息
       sendStreamUpdate(sessionId, {
         type: 'stream-end',
@@ -561,26 +559,26 @@ ipcMain.handle('terminate-session', async (_event, sessionId) => {
           terminated: true,
           exitCode: code,
           signal: signal,
-          metadata: { 
+          metadata: {
             duration,
             terminatedByUser: true
           }
         }
       })
-      
+
       console.log(`✅ Process for session ${sessionId} terminated (code: ${code}, signal: ${signal})`)
     })
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: 'Termination signal sent',
-      duration 
+      duration
     }
   } catch (error) {
     console.error('❌ Failed to terminate process:', error)
-    return { 
-      success: false, 
-      error: String(error) 
+    return {
+      success: false,
+      error: String(error)
     }
   }
 })
