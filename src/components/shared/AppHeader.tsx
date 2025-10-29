@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, IconButton, Box } from '@mui/material';
+import appIcon from '../../assets/icon.png'
 import { Settings as SettingsIcon, Menu as MenuIcon } from '@mui/icons-material';
 
 interface AppHeaderProps {
@@ -20,8 +21,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     elevation={0} 
     sx={{ 
       bgcolor: 'white',
-      borderBottom: '1px solid',
-      borderColor: 'grey.200',
+      borderBottom: 'none',
       color: '#1a1a1a'
     }}
   >
@@ -42,21 +42,16 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       
       <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
         <Box
+          component="img"
+          src={appIcon}
+          alt="App Icon"
           sx={{
             width: 32,
             height: 32,
             borderRadius: '50%',
-            bgcolor: '#CC785C',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            mr: 2,
+            mr: 2
           }}
-        >
-          <Typography variant="body1" sx={{ color: 'white', fontWeight: 600, fontSize: '14px' }}>
-            C
-          </Typography>
-        </Box>
+        />
         <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a1a' }}>
           XGopilot for Desktop
         </Typography>

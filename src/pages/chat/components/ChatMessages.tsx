@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
+import appIcon from '../../../assets/icon.png'
 import { MessageBubble, Message } from './MessageBubble';
 
 interface ChatMessagesProps {
@@ -32,21 +33,16 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
         textAlign: 'center'
       }}>
         <Box
+          component="img"
+          src={appIcon}
+          alt="App Icon"
           sx={{
             width: 64,
             height: 64,
             borderRadius: '50%',
-            bgcolor: '#CC785C',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
             mb: 3,
           }}
-        >
-          <Typography variant="h4" sx={{ color: 'white', fontWeight: 600 }}>
-            C
-          </Typography>
-        </Box>
+        />
         <Typography variant="h5" sx={{ mb: 1, fontWeight: 600, color: '#1a1a1a' }}>
           Welcome to XGopilot for Desktop
         </Typography>

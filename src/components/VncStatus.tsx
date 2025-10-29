@@ -63,8 +63,7 @@ export const VncStatus: React.FC<VncStatusProps> = ({
   return (
     <Box
       sx={{
-        borderTop: '1px solid',
-        borderColor: 'grey.200',
+        borderTop: 'none',
         bgcolor: 'grey.50',
         p: 2
       }}

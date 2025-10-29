@@ -112,7 +112,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPrefill
                 ? '#e74c3c'
                 : '#1a1a1a',
             borderRadius: 2,
-            border: isSystem ? '1px solid #fee' : 'none',
+            border: 'none',
           }}
         >
           <Box sx={{
@@ -123,7 +123,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onPrefill
               bgcolor: '#f6f8fa',
               color: '#24292e',
               borderRadius: '4px',
-              border: '1px solid #e1e4e8',
+              border: 'none',
               padding: '0.2em 0.4em'
             }
           }}>

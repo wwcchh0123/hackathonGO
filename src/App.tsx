@@ -93,6 +93,7 @@ export default function App() {
     createNewSession,
     updateSessionMessages,
     selectSession,
+    deleteSession,
   } = useSessionStorage()
 
   // 自定义VNC状态管理Hook
@@ -429,6 +430,7 @@ export default function App() {
           activeSessionId={activeSessionId}
           onNewSession={createNewSession}
           onSessionSelect={selectSession}
+          onDeleteSession={deleteSession}
           registerStreamRequest={registerStreamRequest}
         />
       </Box>

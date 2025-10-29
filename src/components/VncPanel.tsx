@@ -131,8 +131,7 @@ export const VncPanel: React.FC<VncPanelProps> = ({
         flexDirection: 'column',
         overflow: 'hidden',
         borderRadius: 2,
-        border: '1px solid',
-        borderColor: 'grey.200',
+        border: 'none',
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
       }}
     >

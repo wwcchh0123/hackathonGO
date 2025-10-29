@@ -92,8 +92,7 @@ export const VncToolbar: React.FC<VncToolbarProps> = ({
     <Toolbar
       variant="dense"
       sx={{
-        borderBottom: '1px solid',
-        borderColor: 'grey.200',
+      borderBottom: 'none',
         bgcolor: 'grey.50',
         gap: 2,
         justifyContent: 'space-between',

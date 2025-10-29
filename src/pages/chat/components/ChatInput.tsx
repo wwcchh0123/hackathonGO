@@ -64,8 +64,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       elevation={0}
       sx={{
         p: 2,
-        borderTop: '1px solid',
-        borderColor: 'grey.200',
+        borderTop: 'none',
         borderRadius: 0,
         display: 'flex',
         flexDirection: 'column',
@@ -95,9 +94,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           sx={{
             p: 1,
             bgcolor: 'error.50',
-            borderRadius: 1,
-            border: '1px solid',
-            borderColor: 'error.200'
+            borderRadius: 1
           }}
         >
           <Typography variant="caption" color="error">
@@ -113,8 +110,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             p: 1,
             bgcolor: 'info.50',
             borderRadius: 1,
-            border: '1px solid',
-            borderColor: 'info.200',
             display: 'flex',
             alignItems: 'center',
             gap: 1
@@ -152,10 +147,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           sx={{
             '& .MuiOutlinedInput-root': {
               borderRadius: 2,
-              borderColor: 'grey.300',
-              '&:hover fieldset': { borderColor: '#CC785C' },
-              '&.Mui-focused fieldset': { borderColor: '#CC785C' },
-              '& fieldset': { borderWidth: '1px' }
+              '& fieldset': { borderWidth: 0 }
             }
           }}
         />
