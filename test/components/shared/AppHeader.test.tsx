@@ -31,7 +31,8 @@ describe('AppHeader', () => {
         />
       )
 
-      expect(screen.getByText('C')).toBeInTheDocument()
+      const img = screen.getByAltText('App Icon')
+      expect(img).toBeInTheDocument()
     })
 
     it('应该在聊天页面渲染设置按钮', () => {
