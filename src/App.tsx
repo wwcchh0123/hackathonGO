@@ -267,7 +267,7 @@ export default function App() {
             addMessageToTargetSession("assistant", content)
           } else if (stage === "tool") {
             const toolName = metadata.toolName || "未知工具"
-            addMessageToTargetSession("assistant", `我将调用 ${toolName} 工具`)
+            console.log(`🔧 ${toolName} 工具已执行`)
           } else if (stage === "warning" || stage === "error") {
             const details = rawOutput ? `\n${rawOutput}` : ""
             addMessageToTargetSession("assistant", `${content}${details}`)

@@ -431,6 +431,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({
               messages={messages}
               messagesEndRef={messagesEndRef}
               onPrefillInput={(text) => setInputText(text)}
+              isStreamingActive={isStreamingActive}
             />
 
             <ChatInput
