@@ -2,17 +2,20 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import appIcon from '../../../assets/icon.png'
 import { MessageBubble, Message } from './MessageBubble';
+import { LoadingBubble } from '../../../components/LoadingBubble';
 
 interface ChatMessagesProps {
   messages: Message[];
   messagesEndRef: React.RefObject<HTMLDivElement>;
   onPrefillInput: (text: string) => void;
+  isStreamingActive?: boolean;
 }
 
 export const ChatMessages: React.FC<ChatMessagesProps> = ({
   messages,
   messagesEndRef,
   onPrefillInput,
+  isStreamingActive = false,
 }) => (
   <Box 
     sx={{ 
@@ -52,9 +55,12 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
         </Typography>
       </Box>
     ) : (
-      messages.map((message) => (
-        <MessageBubble key={message.id} message={message} onPrefillInput={onPrefillInput} />
-      ))
+      <>
+        {messages.map((message) => (
+          <MessageBubble key={message.id} message={message} onPrefillInput={onPrefillInput} />
+        ))}
+        {isStreamingActive && <LoadingBubble />}
+      </>
     )}
     <div ref={messagesEndRef} />
   </Box>
